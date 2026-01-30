@@ -33,7 +33,7 @@ class HeadlineService:
         return {
             "correct": correct,
             "was_real": headline.is_real,
-            "source_url": headline.source_url if headline.is_real.is_(True) else None,
+            "source_url": headline.source_url if headline.is_real else None,
             "headline_text": headline.text
         }
 
