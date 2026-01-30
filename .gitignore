@@ -40,10 +40,30 @@ yarn-error.log*
 .npm
 .eslintcache
 
+# Next.js
+.next/
+out/
+frontend/.next/
+frontend/out/
+
 # Build files
 dist/
 build/
 frontend/dist/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+floridaman.db
+
+# Vector DB / AI files
+*.faiss
+*.pkl
+*.index
+chroma_db/
+weaviate_data/
+agents/data/
 
 # OS
 .DS_Store
@@ -80,3 +100,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Alembic migrations (optional - uncomment if you want to track migrations)
+# backend/alembic/versions/*.py

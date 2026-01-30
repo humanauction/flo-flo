@@ -14,7 +14,7 @@ back: check-venv
 	$(PYTHON) manage.py runserver
 
 # Run React frontend
-front:
+front: check-venv
 	cd frontend && npm run dev
 
 # Run tests
