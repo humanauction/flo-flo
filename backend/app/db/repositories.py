@@ -40,11 +40,11 @@ class HeadlineRepository:
 
     def count_real(self) -> int:
         """Count real headlines"""
-        return self.db.query(Headline).filter(Headline.is_real.is_(True)).count()  # ← SQLAlchemy syntax for queries
+        return self.db.query(Headline).filter(Headline.is_real.is_(True)).count()
 
     def count_fake(self) -> int:
         """Count fake headlines"""
-        return self.db.query(Headline).filter(Headline.is_real.is_(False)).count()  # ← SQLAlchemy syntax for queries
+        return self.db.query(Headline).filter(Headline.is_real.is_(False)).count()
 
     def exists(self, text: str) -> bool:
         """Check if headline already exists"""
