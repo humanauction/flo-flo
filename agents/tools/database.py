@@ -32,17 +32,20 @@ def save_headlines_to_db(headlines: List[Dict[str, Any]]) -> str:
                     source_url=headline.get("source_url")
                 )
                 saved += 1
+                logger.debug(f"Saved: {headline['text'][:50]}...")
             except ValueError:
                 skipped += 1
-                logger.debug(
-                    f"Skipped duplicate: {headline['text'][:50]}..."
-                )
+                logger.debug(f"Skipped duplicate: {headline['text'][:50]}...")
 
-        return f"Saved {saved} headlines. Skipped {skipped} duplicates."
+        message = f"💾 Saved {saved} new headlines"
+        if skipped > 0:
+            message += f", skipped {skipped} duplicates"
+        
+        return message
 
     except Exception as e:
-        logger.error(f"Database save failed: {e}")
-        return f"Error saving to database: {str(e)}"
+        logger.error(f"Database save failed: {e}", exc_info=True)
+        return f"❌ Database error: {str(e)}"
     finally:
         db.close()
 
@@ -60,5 +63,8 @@ def get_db_stats() -> str:
             f"  Real: {stats['real_headlines']}\n"
             f"  Fake: {stats['fake_headlines']}"
         )
+    except Exception as e:
+        logger.error(f"Stats retrieval failed: {e}")
+        return f"❌ Could not fetch stats: {str(e)}"
     finally:
         db.close()

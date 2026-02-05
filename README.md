@@ -118,6 +118,7 @@ flo-flo/
 **Goal:** Make agents actually work and improve headline quality
 
 #### 3.1 Fix Agent Execution
+
 - [ ] Debug why agents terminate without running tools
 - [ ] Add proper tool schemas for AutoGen
 - [ ] Test scraper agent fetches real headlines
@@ -125,6 +126,7 @@ flo-flo/
 - [ ] Verify database writes work from agents
 
 #### 3.2 Improve Scraping
+
 - [ ] Add multiple news sources (not just floridaman.com)
 - [ ] Implement retry logic for failed scrapes
 - [ ] Add headline validation (length, format, keywords)
@@ -132,6 +134,7 @@ flo-flo/
 - [ ] Log scraping metrics
 
 #### 3.3 Enhance Generation
+
 - [ ] Connect generator to OpenAI API (currently using templates)
 - [ ] Implement RAG: feed real headlines as context
 - [ ] Add temperature/creativity controls
@@ -139,6 +142,7 @@ flo-flo/
 - [ ] Generate batch headlines for efficiency
 
 #### 3.4 Admin Interface
+
 - [ ] Add backend endpoint to trigger scrape (`POST /api/admin/scrape`)
 - [ ] Add backend endpoint to trigger generation (`POST /api/admin/generate`)
 - [ ] Create simple admin page in frontend

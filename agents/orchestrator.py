@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.conditions import TextMentionTermination
+from autogen_agentchat.conditions import MaxMessageTermination
 from agents.scraper_agent import create_scraper_agent
 from agents.generator_agent import create_generator_agent
 
@@ -21,24 +21,20 @@ async def run_headline_pipeline(
     scraper = create_scraper_agent()
     generator = create_generator_agent()
 
-    # Create termination condition
-    termination = TextMentionTermination("TERMINATE")
+    # Termination: stop after max messages
+    termination = MaxMessageTermination(max_messages=10)
 
-    # Create team with round-robin chat
+    # Create team
     team = RoundRobinGroupChat(
         [scraper, generator],
         termination_condition=termination
     )
 
-    # Run the pipeline
+    # Simpler task without TERMINATE keyword
     task = (
-        f"Collect {scrape_count} real Florida Man headlines "
-        f"and generate {generate_count} fake headlines.\n\n"
-        "Steps:\n"
-        "1. Scrape real headlines\n"
-        "2. Generate fake headlines\n"
-        "3. Show final database stats\n"
-        "4. Reply with TERMINATE when done"
+        f"1. Scraper: collect {scrape_count} real headlines and save to database\n"
+        f"2. Generator: create {generate_count} fake headlines and save to database\n"
+        f"3. Report final database statistics"
     )
 
     logger.info(f"📋 Task: {task}")
@@ -46,9 +42,10 @@ async def run_headline_pipeline(
     try:
         result = await team.run(task=task)
         logger.info("✅ Pipeline complete!")
+        logger.info(f"Result: {result}")
         return result
     except Exception as e:
-        logger.error(f"❌ Pipeline failed: {e}")
+        logger.error(f"❌ Pipeline failed: {e}", exc_info=True)
         raise
 
 
