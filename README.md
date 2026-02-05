@@ -4,7 +4,7 @@ A true/false game where players guess if a headline is a real "Florida Man" stor
 
 ## Introduction
 
-This project combines web scraping, multi-agent AI systems, and a slick frontend to create an entertaining game based on the internet's favorite meme: Florida Man headlines.
+This project combines web scraping, multi-agent AI systems, and a frontend to create a game based on the internet meme: Florida Man.
 
 **Concept:**
 
@@ -16,26 +16,27 @@ This project combines web scraping, multi-agent AI systems, and a slick frontend
 
 ### Frontend
 
-- **Next.js 16** (React, TypeScript, App Router)
+- **Next.js 15** (React, TypeScript, App Router)
 - **Tailwind CSS** for styling
 - **Turbopack** for fast dev builds
 
 ### Backend
 
-- **Python 3.11+**
+- **Python 3.13+**
 - **FastAPI** for REST API
-- **PostgreSQL** for headline storage
-- **Docker Compose** for local development
+- **SQLite** for headline storage (dev) / PostgreSQL (prod)
+- **Docker Compose** for local development (optional)
 
 ### AI Agents
 
-- **AutoGen** (Microsoft) for multi-agent orchestration
-- **LangChain** or **LlamaIndex** for RAG
-- **Vector DB:** Chroma, Weaviate, or PGVector
+- **AutoGen 0.4+** (Microsoft) for multi-agent orchestration
+- **OpenAI GPT-4o-mini** for fake headline generation
+- **Vector DB (future):** Chroma or PGVector for RAG
 
 ### Scraping
 
-- **Requests + BeautifulSoup** or **Playwright**
+- **Requests + BeautifulSoup4** for headline scraping
+- **Playwright** (optional) for JS-heavy sites
 - Target: <https://floridaman.com> and news outlets
 
 ## Project Structure
@@ -44,89 +45,127 @@ This project combines web scraping, multi-agent AI systems, and a slick frontend
 flo-flo/
 ├── frontend/                    # Next.js app
 │   ├── src/
-│   │   ├── app/                 # App Router (Next.js 13+)
-│   │   │   ├── layout.tsx
+│   │   ├── app/
+│   │   │   ├── layout.tsx       # Root layout
 │   │   │   ├── page.tsx         # Main game page
-│   │   │   └── api/             # API routes (optional proxy)
+│   │   │   └── globals.css
 │   │   ├── components/
-│   │   │   ├── GameCard.tsx     # Headline display + T/F buttons
-│   │   │   ├── ScoreBoard.tsx
-│   │   │   └── Header.tsx
-│   │   ├── hooks/
-│   │   │   └── useGame.ts       # Game logic hook
+│   │   │   ├── Game.tsx         # Main game component
+│   │   │   ├── GameCard.tsx     # Headline display + buttons
+│   │   │   ├── ScoreBoard.tsx   # Stats display
+│   │   │   ├── Header.tsx       # Title/branding
+│   │   │   └── ResultModal.tsx  # Feedback after guess
 │   │   ├── lib/
 │   │   │   └── api.ts           # Backend API client
 │   │   └── types/
 │   │       └── index.ts         # TypeScript types
-│   ├── public/
 │   ├── package.json
 │   ├── tsconfig.json
-│   ├── next.config.js
-│   └── tailwind.config.js
+│   ├── next.config.ts
+│   └── tailwind.config.ts
 │
 ├── backend/                     # Python FastAPI
 │   ├── app/
-│   │   ├── __init__.py
 │   │   ├── main.py              # FastAPI entry point
 │   │   ├── config.py            # Environment config
-│   │   ├── models/              # Pydantic + SQLAlchemy models
-│   │   │   ├── __init__.py
-│   │   │   └── headline.py
+│   │   ├── models/
+│   │   │   └── headline.py      # SQLAlchemy model
 │   │   ├── routers/
-│   │   │   ├── __init__.py
 │   │   │   ├── game.py          # Game endpoints
-│   │   │   └── admin.py         # Scrape triggers, stats
+│   │   │   └── admin.py         # Admin/stats endpoints
 │   │   ├── services/
-│   │   │   ├── __init__.py
 │   │   │   └── headline_service.py
 │   │   └── db/
-│   │       ├── __init__.py
 │   │       ├── database.py      # DB connection
 │   │       └── repositories.py  # DB queries
+│   ├── seed_data.py             # Test data seeder
 │   ├── requirements.txt
-│   └── .env.example
+│   └── .env
 │
 ├── agents/                      # AutoGen multi-agent system
-│   ├── __init__.py
-│   ├── config.py
+│   ├── config.py                # Agent configuration
 │   ├── scraper_agent.py         # Agent 1: Web scraping
 │   ├── generator_agent.py       # Agent 2: Fake headline gen
 │   ├── orchestrator.py          # Agent coordination
 │   └── tools/
-│       ├── __init__.py
-│       ├── scraper.py           # BeautifulSoup/Playwright logic
-│       └── vector_store.py      # RAG integration
+│       ├── scraper.py           # BeautifulSoup scraping logic
+│       └── database.py          # DB save/retrieve tools
 │
-├── docker-compose.yml           # PostgreSQL + optional services
 ├── .gitignore
 └── README.md
 ```
 
 ## Development Roadmap
 
-### Phase 1: Foundation
+### Phase 1: Foundation ✅
 
-- [x] **Project structure + Next.js install**
-- [ ] Backend scaffold (FastAPI + PostgreSQL via Docker)
-- [ ] Database models (headlines table)
+- [x] Project structure + Next.js install
+- [x] Backend scaffold (FastAPI + SQLite)
+- [x] Database models (headlines table)
+- [x] Seed data with test headlines
+- [x] Frontend game UI (working end-to-end)
 
-### Phase 2: AI Agents
+### Phase 2: AI Agents ✅
 
-- [ ] AutoGen agent setup (awaiting version confirmation)
-- [ ] Scraper agent (Agent 1: Collect real Florida Man headlines)
-- [ ] Generator agent (Agent 2: Create fake headlines using RAG)
+- [x] AutoGen 0.4+ agent setup
+- [x] Scraper agent (Agent 1: Collect real Florida Man headlines)
+- [x] Generator agent (Agent 2: Create fake headlines)
+- [x] Database integration tools
+- [x] Orchestrator for agent coordination
 
-### Phase 3: Integration
+### Phase 3: Agent Enhancement 🚧 (Current)
 
-- [ ] Wire frontend to backend API
-- [ ] Game logic & scoring system
-- [ ] Admin panel for triggering scrapes
+**Goal:** Make agents actually work and improve headline quality
 
-### Phase 4: Polish & Launch
+#### 3.1 Fix Agent Execution
+- [ ] Debug why agents terminate without running tools
+- [ ] Add proper tool schemas for AutoGen
+- [ ] Test scraper agent fetches real headlines
+- [ ] Test generator agent creates convincing fakes
+- [ ] Verify database writes work from agents
 
-- [ ] UI/UX refinements
-- [ ] Error handling & edge cases
-- [ ] Deploy (Vercel frontend + Railway/Fly.io backend)
+#### 3.2 Improve Scraping
+- [ ] Add multiple news sources (not just floridaman.com)
+- [ ] Implement retry logic for failed scrapes
+- [ ] Add headline validation (length, format, keywords)
+- [ ] Filter duplicate headlines
+- [ ] Log scraping metrics
+
+#### 3.3 Enhance Generation
+- [ ] Connect generator to OpenAI API (currently using templates)
+- [ ] Implement RAG: feed real headlines as context
+- [ ] Add temperature/creativity controls
+- [ ] Validate fake headlines don't duplicate real ones
+- [ ] Generate batch headlines for efficiency
+
+#### 3.4 Admin Interface
+- [ ] Add backend endpoint to trigger scrape (`POST /api/admin/scrape`)
+- [ ] Add backend endpoint to trigger generation (`POST /api/admin/generate`)
+- [ ] Create simple admin page in frontend
+- [ ] Display agent run logs/status
+- [ ] Show headline distribution stats (real vs fake)
+
+### Phase 4: Polish & Production
+
+- [ ] Add user accounts (optional: track personal stats)
+- [ ] Leaderboard system
+- [ ] Share results to social media
+- [ ] Error handling & loading states
+- [ ] Mobile responsiveness improvements
+- [ ] Deploy frontend (Vercel)
+- [ ] Deploy backend (Railway/Fly.io)
+- [ ] Set up PostgreSQL in production
+- [ ] Environment variable management
+- [ ] CI/CD pipeline
+
+### Phase 5: Advanced Features (Future)
+
+- [ ] Vector DB for RAG (Chroma/PGVector)
+- [ ] Multi-model support (Claude, Gemini)
+- [ ] Difficulty levels (easy/hard headlines)
+- [ ] Daily challenge mode
+- [ ] API rate limiting
+- [ ] Caching layer (Redis)
 
 ## Getting Started
 
@@ -134,48 +173,121 @@ flo-flo/
 
 - Node.js 18+ and npm
 - Python 3.11+
-- Docker Desktop (for PostgreSQL)
-- OpenAI API key (for AutoGen)
+- OpenAI API key (for AutoGen generator)
 
 ### Installation
 
-**Frontend:**
+**1. Clone the repo:**
+
+```bash
+git clone https://github.com/humanauction/flo-flo.git
+cd flo-flo
+```
+
+**2. Set up backend:**
+
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+**3. Configure environment:**
+
+Create `backend/.env`:
+
+```env
+DATABASE_URL=sqlite:///./headlines.db
+OPENAI_API_KEY=your_key_here
+```
+
+Create `agents/.env`:
+
+```env
+OPENAI_API_KEY=your_key_here
+OPENAI_MODEL=gpt-4o-mini
+```
+
+**4. Seed database:**
+
+```bash
+cd backend
+python seed_data.py
+```
+
+**5. Start backend:**
+
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+**6. Set up frontend (new terminal):**
 
 ```bash
 cd frontend
 npm install
+```
+
+Create `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+**7. Start frontend:**
+
+```bash
 npm run dev
 ```
 
-**Backend (coming soon):**
+**8. Play the game:**
+
+Visit <http://localhost:3000>
+
+**9. Run agents (optional):**
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-**Database:**
-
-```bash
-docker-compose up -d
+# From project root
+python -m agents.orchestrator
 ```
 
 ## Environment Variables
 
-Create `.env` files in both `backend/` and `agents/` directories:
+### Backend (`backend/.env`)
 
 ```env
-# Backend
-DATABASE_URL=postgresql://user:pass@localhost:5432/floridaman
-OPENAI_API_KEY=your_key_here
-
-# Agents
-AUTOGEN_MODEL=gpt-4
-VECTOR_DB_PATH=./data/chroma
+DATABASE_URL=sqlite:///./headlines.db
+OPENAI_API_KEY=sk-...
 ```
+
+### Agents (`agents/.env` or use backend's)
+
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+MAX_HEADLINES_PER_SCRAPE=10
+TARGET_URL=https://floridaman.com/
+```
+
+### Frontend (`frontend/.env.local`)
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+## API Endpoints
+
+### Game Endpoints
+
+- `GET /api/game/headline` - Get random headline for guessing
+- `POST /api/game/guess` - Submit guess and get result
+
+### Admin Endpoints
+
+- `GET /api/admin/stats` - Get database statistics
+- `POST /api/admin/scrape` - Trigger headline scraping (coming soon)
+- `POST /api/admin/generate` - Trigger fake headline generation (coming soon)
 
 ## Contributing
 
@@ -187,5 +299,6 @@ MIT (because Florida Man belongs to everyone)
 
 ---
 
-**Status:** 🚧 In active development  
-**Current Phase:** Backend scaffold (Step 2/8)
+**Status:** 🚧 Phase 3 - Agent Enhancement  
+**Last Updated:** Feb 5, 2026  
+**Next Milestone:** Fix agent tool execution and wire admin triggers
