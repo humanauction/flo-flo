@@ -12,3 +12,12 @@ aiosqlite==0.20.0      # SQLite (uncomment if using SQLite for dev)
 
 # CORS
 python-multipart==0.0.12
+
+# AutoGen & AI
+autogen-agentchat>=0.4.0
+autogen-ext[openai]>=0.4.0
+
+# Scraping
+beautifulsoup4==4.12.3
+requests==2.31.0
+playwright==1.48.0

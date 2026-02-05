@@ -1,0 +1,19 @@
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+
+class AgentConfig(BaseSettings):
+
+    """ AutoGen agent Configuration. """
+
+    openai_api_key: str
+    openai_model: str = "gpt-4o-mini"
+    max_headlines_per_scrape: int = 10
+    target_url: str = "https://floridaman.com/"
+
+    class Config:
+        env_file = "../backend/.env"
+        case_sensitive = False
+
+
+config = AgentConfig()
