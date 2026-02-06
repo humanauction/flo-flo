@@ -28,12 +28,14 @@ class HeadlineService:
         if not headline:
             return None
 
-        correct = (guess == headline.is_real)
+        correct = (guess == bool(headline.is_real))
 
         return {
             "correct": correct,
             "was_real": headline.is_real,
-            "source_url": headline.source_url if headline.is_real else None,
+            "source_url": (
+                headline.source_url if bool(headline.is_real) else None
+            ),
             "headline_text": headline.text
         }
 
