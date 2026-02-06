@@ -11,11 +11,15 @@ init: check-venv
 
 # Run Django backend
 back: check-venv
-	$(PYTHON) manage.py runserver
+	cd backend && uvicorn app.main:app --reload --port 8000
 
 # Run React frontend
 front: check-venv
 	cd frontend && npm run dev
+
+# Run this to create the new table
+table: 
+	python -c "from backend.app.db_utils import init_db; init_db()"
 
 # Run tests
 test: check-venv

@@ -1,3 +1,4 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 from typing import List, Union
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
     api_reload: bool = True
     allowed_origins: Union[List[str], str] = ["http://localhost:3000"]
-    openai_api_key: str = ""
+    openai_api_key: str
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
         return v
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(Path(__file__).parent.parent.parent / "backend" / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False
     )

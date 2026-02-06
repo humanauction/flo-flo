@@ -5,10 +5,12 @@ from autogen_agentchat.conditions import MaxMessageTermination
 from agents.scraper_agent import create_scraper_agent
 from agents.generator_agent import create_generator_agent
 
+# Logging configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+# Main orchestrator for AutoGen agents
 async def run_headline_pipeline(
     scrape_count: int = 10,
     generate_count: int = 10
@@ -43,6 +45,11 @@ async def run_headline_pipeline(
         result = await team.run(task=task)
         logger.info("✅ Pipeline complete!")
         logger.info(f"Result: {result}")
+
+        # Log token usage
+        if hasattr(result, 'usage'):
+            logger.info(f"💰 Token usage: {result.usage}")
+
         return result
     except Exception as e:
         logger.error(f"❌ Pipeline failed: {e}", exc_info=True)

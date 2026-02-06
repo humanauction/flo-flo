@@ -40,7 +40,7 @@ def save_headlines_to_db(headlines: List[Dict[str, Any]]) -> str:
         message = f"💾 Saved {saved} new headlines"
         if skipped > 0:
             message += f", skipped {skipped} duplicates"
-        
+
         return message
 
     except Exception as e:
