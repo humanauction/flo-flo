@@ -9,6 +9,7 @@ class AgentConfig(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     max_headlines_per_scrape: int = 10
     target_url: str = "https://floridaman.com/"
+    track_tokens: bool = True
 
     class Config:
         env_file = str(Path(__file__).parent.parent / "backend" / ".env")
@@ -17,9 +18,4 @@ class AgentConfig(BaseSettings):
         extra = "ignore"
 
 
-# Debug: print the resolved path
-env_path = Path(__file__).parent.parent / "backend" / ".env"
-print(f"Looking for .env at: {env_path}")
-print(f"File exists: {env_path.exists()}")
-
-config = AgentConfig()
+config = AgentConfig()  # type: ignore

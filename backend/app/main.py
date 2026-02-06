@@ -1,20 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 from app.config import settings
-from app.db.database import engine, Base
-from app.routers import game, admin
+from app.db.database import get_db
+from app.db.repositories import TokenUsageRepository
+from app.models.token_usage import TokenUsage
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+app = FastAPI(title="Florida Man API")
 
-# Initialize FastAPI
-app = FastAPI(
-    title="Florida Man or Fiction API",
-    description="Backend for the Florida Man headline guessing game",
-    version="0.1.0"
-)
-
-# CORS middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
@@ -23,20 +17,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(game.router, prefix="/api/game", tags=["game"])
-app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
-
 
 @app.get("/")
-async def root():
-    return {
-        "message": "Florida Man or Fiction API",
-        "docs": "/docs",
-        "status": "operational"
-    }
+def read_root():
+    return {"message": "Florida Man API"}
 
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+@app.get("/api/token-usage/stats")
+def get_usage_stats(db: Session = Depends(get_db)):
+    """Get aggregate token usage statistics"""
+    repo = TokenUsageRepository(db)
+    return repo.get_stats()
+
+
+@app.get("/api/token-usage/history")
+def get_usage_history(limit: int = 100, db: Session = Depends(get_db)):
+    """Get recent token usage history"""
+    repo = TokenUsageRepository(db)
+    return repo.get_recent(limit)

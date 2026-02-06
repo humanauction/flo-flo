@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     api_port: int = 8000
     api_reload: bool = True
     allowed_origins: Union[List[str], str] = ["http://localhost:3000"]
-    openai_api_key: str
+    openai_api_key: str = ""  # Default empty to avoid Pylance error
 
     @field_validator("allowed_origins", mode="before")
     @classmethod
@@ -24,7 +24,7 @@ class Settings(BaseSettings):
         return v
 
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).parent.parent.parent / "backend" / ".env"),
+        env_file=str(Path(__file__).parent.parent / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False
     )

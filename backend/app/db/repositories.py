@@ -58,3 +58,9 @@ class HeadlineRepository:
             self.db.commit()
             return True
         return False
+
+
+# Import and expose TokenUsageRepository
+from app.db.repositories.token_usage_repository import TokenUsageRepository
+
+__all__ = ['HeadlineRepository', 'TokenUsageRepository']
