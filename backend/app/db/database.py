@@ -29,7 +29,7 @@ def get_db():
 def init_db():
     """Initialize the database and create tables"""
     # Import all models so Base knows about them
-    from app.models.headline import Headline
-    from app.models.token_usage import TokenUsage
+    from app.models.headline import Headline  # noqa: F401
+    from app.models.token_usage import TokenUsage  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

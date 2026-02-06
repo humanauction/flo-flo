@@ -62,7 +62,9 @@ async def run_headline_pipeline(
                         agent_name=msg.source,
                         model=config.openai_model,
                         prompt_tokens=getattr(usage, "prompt_tokens", 0),
-                        completion_tokens=getattr(usage, "completion_tokens", 0),
+                        completion_tokens=getattr(
+                            usage, "completion_tokens", 0
+                        ),
                         total_tokens=getattr(usage, "total_tokens", 0)
                     )
                     logger.info(f"💰 Logged token usage for {msg.source}")

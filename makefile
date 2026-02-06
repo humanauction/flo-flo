@@ -1,6 +1,6 @@
 PYTHON := $(shell command -v python3 2> /dev/null || echo python)
 
-.PHONY: init run-backend run-frontend test help check-venv check-debug check-secrets pre-deploy
+.PHONY: init run-backend run-frontend test help check-venv check-debug check-secrets pre-deploy table
 
 # Initialize development environment
 init: check-venv
@@ -18,8 +18,10 @@ front: check-venv
 	cd frontend && npm run dev
 
 # Run this to create the new table
-table: 
-	python -c "from backend.app.db_utils import init_db; init_db()"
+table: check-venv
+	@echo "Creating database tables..."
+	cd backend && $(PYTHON) -c "from app.db.database import init_db; init_db()"
+	@echo "✅ Tables created successfully!"
 
 # Run tests
 test: check-venv
@@ -78,6 +80,7 @@ help:
 	@echo "	init         	- Initialize development environment"
 	@echo "	back			- Run Django backend server"
 	@echo "	front     		- Run React frontend server"
+	@echo "	table        	- Create database tables"
 	@echo "	test         	- Run tests for backend and frontend"
 	@echo "	check-venv   	- Verify virtual environment is active"
 	@echo "	check-debug  	- Ensure DEBUG=False for production"

@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.db.repositories import HeadlineRepository
+from app.db.repositories.headline_repository import HeadlineRepository
 from app.models.headline import Headline
 from typing import Optional, Dict
 
@@ -45,9 +45,18 @@ class HeadlineService:
             "fake_headlines": self.repo.count_fake()
         }
 
-    def add_headline(self, text: str, is_real: bool, source_url: Optional[str] = None) -> Headline:
+    def add_headline(
+        self,
+        text: str,
+        is_real: bool,
+        source_url: Optional[str] = None
+    ) -> Headline:
         """Add a new headline (from scraper or generator)"""
         if self.repo.exists(text):
             raise ValueError("Headline already exists")
 
-        return self.repo.create(text=text, is_real=is_real, source_url=source_url)
+        return self.repo.create(
+            text=text,
+            is_real=is_real,
+            source_url=source_url
+        )

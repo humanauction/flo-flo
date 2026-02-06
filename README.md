@@ -77,7 +77,7 @@ flo-flo/
 │   │   │   └── headline_service.py
 │   │   └── db/
 │   │       ├── database.py      # DB connection
-│   │       └── repositories.py  # DB queries
+│   │       └── headline_repository.py  # DB queries
 │   ├── seed_data.py             # Test data seeder
 │   ├── requirements.txt
 │   └── .env

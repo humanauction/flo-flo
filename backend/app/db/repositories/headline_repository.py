@@ -10,7 +10,12 @@ class HeadlineRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, text: str, is_real: bool, source_url: Optional[str] = None) -> Headline:
+    def create(
+        self,
+        text: str,
+        is_real: bool,
+        source_url: Optional[str] = None
+    ) -> Headline:
         """Create a new headline"""
         headline = Headline(
             text=text,
@@ -24,7 +29,11 @@ class HeadlineRepository:
 
     def get_by_id(self, headline_id: int) -> Optional[Headline]:
         """Get headline by ID"""
-        return self.db.query(Headline).filter(Headline.id == headline_id).first()
+        return (
+            self.db.query(Headline)
+            .filter(Headline.id == headline_id)
+            .first()
+        )
 
     def get_random(self) -> Optional[Headline]:
         """Get a random headline for the game"""
@@ -40,15 +49,28 @@ class HeadlineRepository:
 
     def count_real(self) -> int:
         """Count real headlines"""
-        return self.db.query(Headline).filter(Headline.is_real.is_(True)).count()
+        return (
+            self.db.query(Headline)
+            .filter(Headline.is_real.is_(True))
+            .count()
+        )
 
     def count_fake(self) -> int:
         """Count fake headlines"""
-        return self.db.query(Headline).filter(Headline.is_real.is_(False)).count()
+        return (
+            self.db.query(Headline)
+            .filter(Headline.is_real.is_(False))
+            .count()
+        )
 
     def exists(self, text: str) -> bool:
         """Check if headline already exists"""
-        return self.db.query(Headline).filter(Headline.text == text).first() is not None
+        exists = (
+            self.db.query(Headline)
+            .filter(Headline.text == text)
+            .first()
+        )
+        return exists is not None
 
     def delete(self, headline_id: int) -> bool:
         """Delete a headline by ID"""

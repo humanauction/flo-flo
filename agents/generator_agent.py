@@ -30,8 +30,10 @@ def create_generator_agent() -> AssistantAgent:
                 "claims squatter's rights",
                 "Florida man caught using fishing rod to steal donuts "
                 "from bakery window",
-                "Florida man tries to pay bail with stack of expired Taco Bell coupons",
-                "Florida man starts fire trying to cook eggs with a clothes iron",
+                "Florida man tries to pay bail with stack of expired Taco "
+                "Bell coupons",
+                "Florida man starts fire trying to cook eggs with a "
+                "clothes iron",
                 "Florida man arrested for breaking into jail to visit friends",
                 "Florida man uses alligator to shotgun a beer at party",
                 "Florida man calls 911 to report his stolen drugs",
@@ -48,7 +50,10 @@ def create_generator_agent() -> AssistantAgent:
 
             result = save_headlines_to_db(formatted)
 
-            return f"✅ Generated {len(fake_headlines)} fake headlines\n\n{result}"
+            return (
+                f"✅ Generated {len(fake_headlines)} fake headlines\n\n"
+                f"{result}"
+            )
 
         except Exception as e:
             logger.error(f"Generator tool failed: {e}", exc_info=True)

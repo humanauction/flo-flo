@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.db.database import get_db
 from app.db.repositories import TokenUsageRepository
-from app.models.token_usage import TokenUsage
 
 app = FastAPI(title="Florida Man API")
 
