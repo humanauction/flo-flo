@@ -265,7 +265,7 @@ DATABASE_URL=sqlite:///./headlines.db
 OPENAI_API_KEY=sk-...
 ```
 
-### Agents (`agents/.env` or use backend's)
+### Agents (`agents/.env` or use backend)
 
 ```env
 OPENAI_API_KEY=sk-...
@@ -292,6 +292,102 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 - `GET /api/admin/stats` - Get database statistics
 - `POST /api/admin/scrape` - Trigger headline scraping (coming soon)
 - `POST /api/admin/generate` - Trigger fake headline generation (coming soon)
+
+## Testing
+
+### Test Structure 
+```text
+flo-flo/
+├── frontend/
+│   ├── src/
+│   ├── __tests__/              # Frontend unit tests
+│   │   ├── components/
+│   │   │   ├── Game.test.tsx
+│   │   │   └── GameCard.test.tsx
+│   │   └── lib/
+│   │       └── api.test.ts
+│   ├── jest.config.js
+│   └── package.json            # npm test
+│
+├── backend/
+│   ├── app/
+│   ├── tests/                  # Backend unit + integration tests
+│   │   ├── __init__.py
+│   │   ├── conftest.py         # pytest fixtures
+│   │   ├── test_routers/
+│   │   │   ├── test_game.py
+│   │   │   └── test_admin.py
+│   │   ├── test_services/
+│   │   │   └── test_headline_service.py
+│   │   └── test_db/
+│   │       └── test_repositories.py
+│   ├── pytest.ini
+│   └── requirements-dev.txt    # pytest, pytest-asyncio, etc.
+│
+├── agents/
+│   ├── tools/
+│   ├── tests/                  # Agent-specific tests
+│   │   ├── __init__.py
+│   │   ├── conftest.py
+│   │   ├── test_scraper_agent.py
+│   │   ├── test_generator_agent.py
+│   │   ├── test_tools/
+│   │   │   ├── test_scraper.py
+│   │   │   └── test_database.py
+│   │   └── test_orchestrator_mock.py
+│   └── pytest.ini
+│
+├── tests/                      # End-to-end/integration tests (optional)
+│   ├── __init__.py
+│   ├── test_e2e_headline_flow.py    # Full pipeline: scrape → DB → API → frontend
+│   └── test_api_integration.py       # Backend + Agent coordination
+│
+├── .github/
+│   └── workflows/
+│       ├── backend-tests.yml   # Backend CI
+│       ├── frontend-tests.yml  # Frontend CI
+│       ├── agent-tests.yml     # Agent CI
+│       └── e2e-tests.yml       # Integration tests (optional)
+│
+└── Makefile                    # Convenience commands
+```
+
+### Frontend Tests
+
+- `components/Game.test.tsx`
+- `components/GameCard.test.tsx`
+- `lib/api.test.ts`
+
+### Backend Tests
+
+- `tests/__init__.py`
+- `tests/conftest.py`
+- `test_routers/test_game.py`
+- `test_routers/test_admin.py`
+- `test_services/test_headline_service.py`
+- `test_db/test_repositories.py`
+
+### Agent Tests
+
+- `tools/__init__.py`
+- `tools/conftest.py`
+- `test_scraper_agent.py`
+- `test_generator_agent.py`
+- `test_tools/test_scraper.py`
+- `test_tools/test_database.py`
+- `test_orchestrator_mock.py`
+
+### End-to-end Tests
+
+- `test_e2e_headline_flow.py`
+- `test_api_integration.py`
+
+### CI/CD
+
+- `backend-tests.yml`
+- `frontend-tests.yml`
+- `agent-tests.yml`
+- `e2e-tests.yml`
 
 ## Contributing
 
