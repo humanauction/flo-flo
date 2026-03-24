@@ -10,11 +10,11 @@ init: check-venv
 	@echo "🛠️  Dependencies installed."
 
 # Run Django backend
-back: check-venv
+bk: check-venv
 	cd backend && uvicorn app.main:app --reload --port 8000
 
 # Run React frontend
-front: check-venv
+fr: check-venv
 	cd frontend && npm run dev
 
 # Run this to create the new table
@@ -78,8 +78,8 @@ pre-deploy: check-venv check-debug check-secrets
 help:
 	@echo "Available commands:"
 	@echo "	init         	- Initialize development environment"
-	@echo "	back			- Run Django backend server"
-	@echo "	front     		- Run React frontend server"
+	@echo "	bk			- Run Django backend server"
+	@echo "	fr     		- Run React frontend server"
 	@echo "	table        	- Create database tables"
 	@echo "	test         	- Run tests for backend and frontend"
 	@echo "	check-venv   	- Verify virtual environment is active"

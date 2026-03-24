@@ -104,5 +104,6 @@ dist-ssr
 
 frontend/README.md
 
+
 # Alembic migrations (optional - uncomment if you want to track migrations)
 # backend/alembic/versions/*.py
