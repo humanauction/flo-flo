@@ -14,9 +14,9 @@ from app.models.token_usage import TokenUsage  # noqa: F401
 
 @pytest.fixture(scope="session")
 def db_engine():
-    # Create a temporary file for the SQLite database
+    # Creates temporary file for SQLite database
     db_fd, db_path = tempfile.mkstemp(prefix="test_", suffix=".db")
-    os.close(db_fd)  # Close the file descriptor
+    os.close(db_fd)  # Closes file descriptor
     test_db_url = f"sqlite:///{db_path}"
 
     db_engine = create_engine(
