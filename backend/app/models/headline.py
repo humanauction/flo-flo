@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
-from sqlalchemy.sql import func
+from datetime import datetime
+from sqlalchemy import String, Boolean, DateTime, Text, func
+from sqlalchemy.orm import Mapped, mapped_column
 from app.db.database import Base
 
 
@@ -8,12 +9,18 @@ class Headline(Base):
 
     __tablename__ = "headlines"
 
-    id = Column(Integer, primary_key=True, index=True)
-    text = Column(Text, nullable=False, unique=True)
-    is_real = Column(Boolean, nullable=False)  # True = real, False = AI
-    source_url = Column(String(500), nullable=True)  # Only for real headlines
-    scraped_at = Column(DateTime(timezone=True), server_default=func.now())
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
+    # True = real, False = AI
+    is_real: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    # Only real headlines
+    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    scraped_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     def __repr__(self):
         return (

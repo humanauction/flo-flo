@@ -37,6 +37,11 @@ def db_session(db_engine):
         bind=db_engine,
     )
     session = TestingSessionLocal()
+
+    for table in reversed(Base.metadata.sorted_tables):
+        session.execute(table.delete())
+    session.commit()
+
     try:
         yield session
     finally:
