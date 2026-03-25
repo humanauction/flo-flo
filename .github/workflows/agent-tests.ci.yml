@@ -29,5 +29,8 @@ jobs:
                   pip install -r backend/requirements.txt
                   pip install pytest pytest-asyncio
 
+            - name: Run offline agent tests
+              run: pytest -v -m "not external and not openai" agents/tests
+
             - name: Run agent tests
               run: pytest -v agents/tests
