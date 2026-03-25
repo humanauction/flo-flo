@@ -2,11 +2,6 @@ from typing import cast
 from app.services.headline_service import HeadlineService
 
 
-# smoke test
-def test_smoke():
-    assert True
-
-
 def test_add_headline_and_stats(db_session):
     service = HeadlineService(db_session)
     created = service.add_headline(
