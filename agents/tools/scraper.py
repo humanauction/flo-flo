@@ -5,6 +5,8 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+MAX_SCRAPE_COUNT = 50
+
 
 class HeadlineScraper:
     """
@@ -13,6 +15,11 @@ class HeadlineScraper:
     """
 
     def __init__(self, target_url: str = "https://floridaman.com/"):
+        if not isinstance(target_url, str) or not target_url.strip():
+            raise ValueError("target_url must be a non-empty string")
+        if not target_url.startswith(("http://", "https://")):
+            raise ValueError("target_url must start with http:// or https://")
+
         self.target_url = target_url
         self.headers = {
             "User-Agent": (
@@ -20,6 +27,37 @@ class HeadlineScraper:
                 "AppleWebKit/537.36"
             )
         }
+
+    @staticmethod
+    def _normalize_text(value: str) -> str:
+        return " ".join(value.split()).strip()
+
+    def _dedupe_headlines(self, headlines: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        seen: set[str] = set()
+        deduped: List[Dict[str, str]] = []
+
+        for headline in headlines:
+            text = headline.get("text")
+            source_url = headline.get("source_url")
+
+            if not isinstance(text, str) or not text.strip():
+                continue
+            if not isinstance(source_url, str) or not source_url.strip():
+                continue
+
+            normalized = self._normalize_text(text).lower()
+            if normalized in seen:
+                continue
+
+            seen.add(normalized)
+            deduped.append(
+                {
+                    "text": self._normalize_text(text),
+                    "source_url": source_url.strip(),
+                }
+            )
+
+        return deduped
 
     def scrape_floridaman_com(self) -> List[Dict[str, str]]:
         """Scrape headlines from floridaman.com"""
@@ -32,7 +70,7 @@ class HeadlineScraper:
             response.raise_for_status()
 
             soup = BeautifulSoup(response.text, 'html.parser')
-            headlines = []
+            headlines: List[Dict[str, str]] = []
 
             articles = soup.find_all("article")
             if not articles:
@@ -57,6 +95,8 @@ class HeadlineScraper:
                             "text": title,
                             "source_url": url
                         })
+
+            headlines = self._dedupe_headlines(headlines)
 
             logger.info(
                 f"Scraped {len(headlines)} headlines from {self.target_url}"
@@ -110,16 +150,24 @@ class HeadlineScraper:
         if not headlines:
             logger.warning("Primary scrape failed, using fallback headlines")
             headlines = self.scrape_fallback()
-        return headlines
+
+        return self._dedupe_headlines(headlines)
 
 
 def scrape_headlines(max_count: int = 10) -> str:
     """AutoGen agent tool function"""
+    if not isinstance(max_count, int):
+        return "Invalid max_count: must be an integer"
+    if max_count < 1 or max_count > MAX_SCRAPE_COUNT:
+        return f"Invalid max_count: must be between 1 and {MAX_SCRAPE_COUNT}"
+
     scraper = HeadlineScraper()
     headlines = scraper.scrape()[:max_count]
 
     result = f"Scraped {len(headlines)} headlines:\n\n"
     for i, h in enumerate(headlines, 1):
-        result += f"{i}. {h['text']}\n   Source: {h['source_url']}\n\n"
+        text = h.get("text", "(missing text)")
+        source = h.get("source_url", "(missing source)")
+        result += f"{i}. {text}\n   Source: {source}\n\n"
 
     return result

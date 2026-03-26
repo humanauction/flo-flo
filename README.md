@@ -43,54 +43,53 @@ This project combines web scraping, multi-agent AI systems, and a frontend to cr
 
 ```text
 flo-flo/
+├── .github/
+│   └── workflows/
+│       ├── python-tests.ci.yml
+│       ├── frontend-tests.ci.yml
+│       └── integration-tests.manual.yml
+├── backend/                     # FastAPI + Alembic migrations
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── db/
+│   │   │   ├── database.py
+│   │   │   └── repositories/
+│   │   │       ├── headline_repository.py
+│   │   │       └── token_usage_repository.py
+│   │   ├── models/
+│   │   │   ├── headline.py
+│   │   │   └── token_usage.py
+│   │   ├── routers/
+│   │   │   ├── game.py
+│   │   │   └── admin.py
+│   │   ├── services/
+│   │   │   └── headline_service.py
+│   ├── migrations/
+│   │   ├── env.py
+│   │   └── versions/
+│   ├── tests/
+│   ├── alembic.ini
+│   ├── requirements.txt
+│   ├── seed_data.py
+│   └── .env
+├── agents/                      # AutoGen multi-agent system
+│   ├── config.py
+│   ├── scraper_agent.py
+│   ├── generator_agent.py
+│   ├── orchestrator.py
+│   └── tools/
+│       ├── scraper.py
+│       └── database.py
 ├── frontend/                    # Next.js app
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── layout.tsx       # Root layout
-│   │   │   ├── page.tsx         # Main game page
-│   │   │   └── globals.css
 │   │   ├── components/
-│   │   │   ├── Game.tsx         # Main game component
-│   │   │   ├── GameCard.tsx     # Headline display + buttons
-│   │   │   ├── ScoreBoard.tsx   # Stats display
-│   │   │   ├── Header.tsx       # Title/branding
-│   │   │   └── ResultModal.tsx  # Feedback after guess
 │   │   ├── lib/
-│   │   │   └── api.ts           # Backend API client
 │   │   └── types/
-│   │       └── index.ts         # TypeScript types
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── next.config.ts
-│   └── tailwind.config.ts
-│
-├── backend/                     # Python FastAPI
-│   ├── app/
-│   │   ├── main.py              # FastAPI entry point
-│   │   ├── config.py            # Environment config
-│   │   ├── models/
-│   │   │   └── headline.py      # SQLAlchemy model
-│   │   ├── routers/
-│   │   │   ├── game.py          # Game endpoints
-│   │   │   └── admin.py         # Admin/stats endpoints
-│   │   ├── services/
-│   │   │   └── headline_service.py
-│   │   └── db/
-│   │       ├── database.py      # DB connection
-│   │       └── headline_repository.py  # DB queries
-│   ├── seed_data.py             # Test data seeder
-│   ├── requirements.txt
-│   └── .env
-│
-├── agents/                      # AutoGen multi-agent system
-│   ├── config.py                # Agent configuration
-│   ├── scraper_agent.py         # Agent 1: Web scraping
-│   ├── generator_agent.py       # Agent 2: Fake headline gen
-│   ├── orchestrator.py          # Agent coordination
-│   └── tools/
-│       ├── scraper.py           # BeautifulSoup scraping logic
-│       └── database.py          # DB save/retrieve tools
-│
+│   ├── __tests__/
+│   └── package.json
+├── makefile
 ├── .gitignore
 └── README.md
 ```
@@ -213,20 +212,27 @@ OPENAI_API_KEY=your_key_here
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-**4. Seed database:**
+**4. Apply migrations:**
+
+```bash
+cd backend
+python -m alembic upgrade head
+```
+
+**5. Seed database:**
 
 ```bash
 cd backend
 python seed_data.py
 ```
 
-**5. Start backend:**
+**6. Start backend:**
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-**6. Set up frontend (new terminal):**
+**7. Set up frontend (new terminal):**
 
 ```bash
 cd frontend
@@ -239,22 +245,41 @@ Create `frontend/.env.local`:
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-**7. Start frontend:**
+**8. Start frontend:**
 
 ```bash
 npm run dev
 ```
 
-**8. Play the game:**
+**9. Play the game:**
 
 Visit <http://localhost:3000>
 
-**9. Run agents (optional):**
+**10. Run agents (optional):**
 
 ```bash
 # From project root
 python -m agents.orchestrator
 ```
+
+### Migration-first workflow
+
+Use Alembic as the only schema change path.
+
+```bash
+cd backend
+
+# 1) Create a migration revision from model changes
+python -m alembic revision --autogenerate -m "describe schema change"
+
+# 2) Apply latest migrations
+python -m alembic upgrade head
+
+# 3) Seed data (optional, local/dev)
+python seed_data.py
+```
+
+Do not call `Base.metadata.create_all()` in runtime startup code. Schema changes must be tracked through migrations to avoid drift.
 
 ## Environment Variables
 
@@ -378,8 +403,8 @@ This repository uses three GitHub Actions workflows:
 - File: `.github/workflows/python-tests.ci.yml`
 - Trigger: push/pull_request on backend or agents changes
 - Runs:
-  - backend tests with markers: not external and not openai
-  - agent tests with markers: not external and not openai
+    - backend tests with markers: not external and not openai
+    - agent tests with markers: not external and not openai
 - Coverage: uploads backend coverage.xml to Codecov
 
 1. Frontend Tests
@@ -387,18 +412,20 @@ This repository uses three GitHub Actions workflows:
 - File: `.github/workflows/frontend-tests.ci.yml`
 - Trigger: push/pull_request on frontend changes
 - Runs:
-  - npm ci
-  - npm test -- --coverage
+    - npm ci
+    - npm test -- --coverage
 
 1. Integration Tests (Manual)
 
 - File: `.github/workflows/integration-tests.manual.yml`
-  `- Trigger: - workflow_dispatch (manual) - weekly schedule (Monday 06:00 UTC)
+- Trigger:
+    - workflow_dispatch (manual)
+    - weekly schedule (Monday 06:00 UTC)
 - Inputs:
-  - suite: external | openai | all
+    - suite: external | openai | all
 - Runs:
-  - external-marked tests across backend and agents
-  - openai-marked tests (only when OPENAI_API_KEY secret exists)
+    - external-marked tests across backend and agents
+    - openai-marked tests (only when OPENAI_API_KEY secret exists)
 
 ## Contributing
 
