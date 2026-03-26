@@ -23,12 +23,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-
-def init_db():
-    """Initialize the database and create tables"""
-    # Import all models so Base knows about them
-    from app.models.headline import Headline  # noqa: F401
-    from app.models.token_usage import TokenUsage  # noqa: F401
-
-    Base.metadata.create_all(bind=engine)
