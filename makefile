@@ -1,21 +1,18 @@
 PYTHON := $(shell command -v python3 2>/dev/null || command -v python)
-VENV_BIN := .venv/bin
-PYTEST := $(VENV_BIN)/pytest
-UVICORN := $(VENV_BIN)/uvicorn
 
-.PHONY: init bk fr table test test-bk test-agents test-fr lint help check-venv
+.PHONY: check-venv init bk fr table test test-bk test-agents test-fr test-manual \
+	migrate migrate-new migrate-down migrate-current lint help
 
 check-venv:
-	@if [ ! -x "$(VENV_BIN)/python" ]; then \
-		echo "ERROR: .venv not found. Create and activate it first."; \
-		echo "Example: python3 -m venv .venv && source .venv/bin/activate"; \
+	@if [ -z "$(PYTHON)" ]; then \
+		echo "ERROR: python3/python not found in PATH"; \
 		exit 1; \
 	fi
 
 init: check-venv
-	@echo "Installing backend deps..."
-	$(VENV_BIN)/pip install -r backend/requirements.txt
-	@echo "Installing frontend deps..."
+	@echo "Installing backend dependencies..."
+	$(PYTHON) -m pip install -r backend/requirements.txt
+	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 	@echo "Done."
 
@@ -25,45 +22,38 @@ bk: check-venv
 fr:
 	cd frontend && npm run dev
 
-table: check-venv
-	cd backend && ../$(VENV_BIN)/python -c "from app.db.database import init_db; init_db()"
+# Backward-compatible alias (old target name)
+table: migrate
 
 test: test-bk test-agents
 
 test-bk: check-venv
-	cd backend && $(PYTHON) -m pytest -q tests
+	cd backend && $(PYTHON) -m pytest -vv -s -ra -m "not external and not openai" tests
 
 test-agents: check-venv
-	cd agents && $(PYTHON) -m pytest -q tests
+	cd agents && $(PYTHON) -m pytest -vv -s -ra -m "not external and not openai" tests
 
 test-fr:
-	cd frontend && npm test
+	cd frontend && npm test -- --verbose
 
-test-manual:
-	python -m pytest -q -m external -rs -vv agents/tests/test_scraper_agent.py
+test-manual: check-venv
+	$(PYTHON) -m pytest -vv -s -ra -m external agents/tests/test_scraper_agent.py
 
 lint:
 	cd frontend && npm run lint
 
-migrate:
-	cd backend && ../.venv/bin/alembic upgrade head
+migrate: check-venv
+	cd backend && $(PYTHON) -m alembic upgrade head
 
-migrate-new:
-	cd backend && ../.venv/bin/alembic revision --autogenerate -m "$(m)"
+migrate-new: check-venv
+	@if [ -z "$(m)" ]; then \
+		echo 'Usage: make migrate-new m="your migration message"'; \
+		exit 1; \
+	fi
+	cd backend && $(PYTHON) -m alembic revision --autogenerate -m "$(m)"
 
-migrate-down:
-	cd backend && ../.venv/bin/alembic downgrade -1
+migrate-down: check-venv
+	cd backend && $(PYTHON) -m alembic downgrade -1
 
-migrate-current:
-	cd backend && ../.venv/bin/alembic current
-
-help:
-	@echo "init          Install backend/frontend dependencies"
-	@echo "bk            Run FastAPI backend on :8000"
-	@echo "fr            Run Next.js frontend"
-	@echo "table         Initialize DB tables"
-	@echo "test          Run backend + agents tests"
-	@echo "test-bk       Run backend pytest suite"
-	@echo "test-agents   Run agents pytest suite"
-	@echo "test-fr       Run frontend tests (requires jest setup)"
-	@echo "lint          Run frontend lint"
+migrate-current: check-venv
+	cd backend && $(PYTHON) -m alembic current

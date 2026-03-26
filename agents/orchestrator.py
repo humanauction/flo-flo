@@ -5,7 +5,7 @@ from autogen_agentchat.conditions import MaxMessageTermination
 from agents.scraper_agent import create_scraper_agent
 from agents.generator_agent import create_generator_agent
 from agents.config import config
-from backend.app.db.database import get_db, init_db
+from backend.app.db.database import get_db
 from backend.app.db.repositories import TokenUsageRepository
 
 logging.basicConfig(level=logging.INFO)
@@ -20,8 +20,7 @@ async def run_headline_pipeline(
 
     logger.info("🚀 Starting AutoGen headline pipeline...")
 
-    # Initialize database
-    init_db()
+    # Initialize database (if needed) here
 
     # Create agents
     scraper = create_scraper_agent()
