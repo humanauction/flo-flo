@@ -34,10 +34,6 @@ jobs:
               working-directory: ./backend
               run: pytest -m "not external and not openai" --cov=app --cov-report=xml --cov-report=term-missing
 
-            - name: Run tests
-              working-directory: ./backend
-              run: pytest --cov=app --cov-report=xml --cov-report=term-missing
-
             - name: Upload coverage
               uses: codecov/codecov-action@v4
               with:

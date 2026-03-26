@@ -115,39 +115,39 @@ flo-flo/
 
 ### Phase 3: Agent Enhancement 🚧 (Current)
 
-**Goal:** Make agents actually work and improve headline quality
+**Goal:** Make agents robust, testable offline by default, and safely gate external/OpenAI paths.
 
 #### 3.1 Fix Agent Execution
 
-- [ ] Debug why agents terminate without running tools
-- [ ] Add proper tool schemas for AutoGen
-- [ ] Test scraper agent fetches real headlines
-- [ ] Test generator agent creates convincing fakes
-- [ ] Verify database writes work from agents
+- [x] Debug why agents terminate without running tools
+- [x] Add baseline tool-level tests for scraper/database paths
+- [x] Verify database writes from agent tools (offline)
+- [ ] Add stronger tool schemas for AutoGen
+- [ ] Add richer generator assertions for real OpenAI path
 
-#### 3.2 Improve Scraping
+#### 3.2 Testing Strategy (Implemented)
+
+- [x] Offline tests as default (`not external and not openai`)
+- [x] External scraping tests marked with `@pytest.mark.external`
+- [x] OpenAI integration tests marked with `@pytest.mark.openai`
+- [x] Manual OpenAI workflow with secret guard
+
+#### 3.3 Improve Scraping
 
 - [ ] Add multiple news sources (not just floridaman.com)
-- [ ] Implement retry logic for failed scrapes
-- [ ] Add headline validation (length, format, keywords)
-- [ ] Filter duplicate headlines
-- [ ] Log scraping metrics
+- [ ] Add retry/backoff and timeout strategy
+- [ ] Add stronger headline validation and dedupe metrics
 
-#### 3.3 Enhance Generation
+#### 3.4 Enhance Generation
 
-- [ ] Connect generator to OpenAI API (currently using templates)
-- [ ] Implement RAG: feed real headlines as context
-- [ ] Add temperature/creativity controls
-- [ ] Validate fake headlines don't duplicate real ones
-- [ ] Generate batch headlines for efficiency
+- [ ] Connect generator path fully to OpenAI outputs (not template-only)
+- [ ] Add quality checks (length, plausibility, duplicate detection)
+- [ ] Add optional RAG context from real headlines
 
-#### 3.4 Admin Interface
+#### 3.5 Admin Interface
 
-- [ ] Add backend endpoint to trigger scrape (`POST /api/admin/scrape`)
-- [ ] Add backend endpoint to trigger generation (`POST /api/admin/generate`)
-- [ ] Create simple admin page in frontend
-- [ ] Display agent run logs/status
-- [ ] Show headline distribution stats (real vs fake)
+- [ ] Add endpoints to trigger scrape/generate jobs from API
+- [ ] Add frontend admin page to run jobs and show status/logs
 
 ### Phase 4: Polish & Production
 

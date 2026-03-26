@@ -39,6 +39,9 @@ test-agents: check-venv
 test-fr:
 	cd frontend && npm test
 
+test-manual:
+	python -m pytest -q -m external -rs -vv agents/tests/test_scraper_agent.py
+
 lint:
 	cd frontend && npm run lint
 
