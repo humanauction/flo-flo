@@ -45,6 +45,18 @@ test-manual:
 lint:
 	cd frontend && npm run lint
 
+migrate:
+	cd backend && ../.venv/bin/alembic upgrade head
+
+migrate-new:
+	cd backend && ../.venv/bin/alembic revision --autogenerate -m "$(m)"
+
+migrate-down:
+	cd backend && ../.venv/bin/alembic downgrade -1
+
+migrate-current:
+	cd backend && ../.venv/bin/alembic current
+
 help:
 	@echo "init          Install backend/frontend dependencies"
 	@echo "bk            Run FastAPI backend on :8000"

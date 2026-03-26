@@ -297,58 +297,46 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ```text
 flo-flo/
-├── frontend/
-│   ├── src/
-│   ├── __tests__/              # Frontend unit tests
-│   │   ├── components/
-│   │   │   ├── Game.test.tsx
-│   │   │   └── GameCard.test.tsx
-│   │   └── lib/
-│   │       └── api.test.ts
-│   ├── jest.config.js
-│   └── package.json            # npm test
-│
-├── backend/
-│   ├── app/
-│   ├── tests/                  # Backend unit + integration tests
-│   │   ├── __init__.py
-│   │   ├── conftest.py         # pytest fixtures
-│   │   ├── test_routers/
-│   │   │   ├── test_game.py
-│   │   │   └── test_admin.py
-│   │   ├── test_services/
-│   │   │   └── test_headline_service.py
-│   │   └── test_db/
-│   │       └── test_repositories.py
-│   ├── pytest.ini
-│   └── requirements-dev.txt    # pytest, pytest-asyncio, etc.
-│
-├── agents/
-│   ├── tools/
-│   ├── tests/                  # Agent-specific tests
-│   │   ├── __init__.py
-│   │   ├── conftest.py
-│   │   ├── test_scraper_agent.py
-│   │   ├── test_generator_agent.py
-│   │   ├── test_tools/
-│   │   │   ├── test_scraper.py
-│   │   │   └── test_database.py
-│   │   └── test_orchestrator_mock.py
-│   └── pytest.ini
-│
-├── tests/                      # End-to-end/integration tests (optional)
-│   ├── __init__.py
-│   ├── test_e2e_headline_flow.py    # Full pipeline: scrape → DB → API → frontend
-│   └── test_api_integration.py       # Backend + Agent coordination
-│
 ├── .github/
 │   └── workflows/
-│       ├── backend-tests.yml   # Backend CI
-│       ├── frontend-tests.yml  # Frontend CI
-│       ├── agent-tests.yml     # Agent CI
-│       └── e2e-tests.yml       # Integration tests (optional)
-│
-└── Makefile                    # Convenience commands
+│       ├── python-tests.ci.yml
+│       ├── frontend-tests.ci.yml
+│       └── integration-tests.manual.yml
+├── agents/
+│   ├── config.py
+│   ├── orchestrator.py
+│   ├── scraper_agent.py
+│   ├── generator_agent.py
+│   ├── tools/
+│   │   ├── scraper.py
+│   │   └── database.py
+│   └── tests/
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── db/
+│   │   │   ├── database.py
+│   │   │   └── repositories/
+│   │   ├── models/
+│   │   ├── routers/
+│   │   └── services/
+│   ├── migrations/              # Alembic
+│   │   ├── versions/
+│   │   └── env.py
+│   ├── alembic.ini
+│   ├── requirements.txt
+│   └── tests/
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   ├── components/
+│   │   ├── lib/
+│   │   └── types/
+│   ├── __tests__/
+│   └── package.json
+├── makefile
+└── README.md
 ```
 
 ### Frontend Tests
@@ -381,12 +369,36 @@ flo-flo/
 - `test_e2e_headline_flow.py`
 - `test_api_integration.py`
 
-### CI/CD
+## CI Workflows
 
-- `backend-tests.yml`
-- `frontend-tests.yml`
-- `agent-tests.yml`
-- `e2e-tests.yml`
+This repository uses three GitHub Actions workflows:
+
+1. Python Tests (Offline)
+
+- File: `.github/workflows/python-tests.ci.yml`
+- Trigger: push/pull_request on backend or agents changes
+- Runs:
+  - backend tests with markers: not external and not openai
+  - agent tests with markers: not external and not openai
+- Coverage: uploads backend coverage.xml to Codecov
+
+1. Frontend Tests
+
+- File: `.github/workflows/frontend-tests.ci.yml`
+- Trigger: push/pull_request on frontend changes
+- Runs:
+  - npm ci
+  - npm test -- --coverage
+
+1. Integration Tests (Manual)
+
+- File: `.github/workflows/integration-tests.manual.yml`
+  `- Trigger: - workflow_dispatch (manual) - weekly schedule (Monday 06:00 UTC)
+- Inputs:
+  - suite: external | openai | all
+- Runs:
+  - external-marked tests across backend and agents
+  - openai-marked tests (only when OPENAI_API_KEY secret exists)
 
 ## Contributing
 
@@ -399,5 +411,5 @@ MIT (because Florida Man belongs to everyone)
 ---
 
 **Status:** 🚧 Phase 3 - Agent Enhancement  
-**Last Updated:** Feb 5, 2026  
+**Last Updated:** March 26, 2026  
 **Next Milestone:** Fix agent tool execution and wire admin triggers

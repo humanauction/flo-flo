@@ -2,14 +2,12 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.config import settings
-from app.db.database import get_db, init_db
+from app.db.database import get_db
 from app.db.repositories import TokenUsageRepository
 from app.routers import game, admin
 
 app = FastAPI(title="Florida Man API")
 
-
-init_db()
 
 # CORS
 app.add_middleware(

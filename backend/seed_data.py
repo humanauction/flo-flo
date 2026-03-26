@@ -1,14 +1,13 @@
 """Seed database with test headlines"""
-from app.db.database import SessionLocal, engine, Base
+from app.db.database import SessionLocal
 from app.models.headline import Headline
 
-# Create tables
-Base.metadata.create_all(bind=engine)
 
 # Test headlines
 test_headlines = [
     {
-        "text": "Florida man arrested for teaching squirrels to attack his ex-girlfriend",
+        "text": "Florida man arrested for teaching squirrels to "
+                "attack his ex-girlfriend",
         "is_real": True,
         "source_url": "https://www.clickorlando.com/news/2019/04/18/florida-man-accused-of-training-squirrels-to-attack/"
     },
@@ -23,12 +22,14 @@ test_headlines = [
         "source_url": "https://www.palmbeachpost.com/story/news/crime/2018/03/02/florida-man-tried-to-pay-for-mcdonalds-order-with-weed-cops-say/9875026007/"
     },
     {
-        "text": "Florida man caught riding manatee while dressed as Santa Claus",
+        "text": "Florida man caught riding manatee while "
+                "dressed as Santa Claus",
         "is_real": False,
         "source_url": None
     },
     {
-        "text": "Florida man builds working rocket ship from reclaimed Waffle House materials",
+        "text": "Florida man builds working rocket ship from "
+                "reclaimed Waffle House materials",
         "is_real": False,
         "source_url": None
     },
