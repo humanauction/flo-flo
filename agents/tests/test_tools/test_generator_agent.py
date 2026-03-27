@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from agents.tools import database as db_tools
+from typing import Any, cast
 
 # Import backend metadata, models via path injection done in db_tools
 from app.db.database import Base
@@ -41,3 +42,47 @@ def test_save_headlines_to_db_and_stats_offline(monkeypatch, tmp_path):
     assert "skipped 1" in second_save or "Saved 0" in second_save
     assert "Total:" in stats
     assert "Fake:" in stats
+
+
+def test_save_headlines_to_db_rejects_non_list_payload(monkeypatch, tmp_path):
+    test_db_path = tmp_path / "agents_tools_test_invalid.db"
+    engine = create_engine(
+        f"sqlite:///{test_db_path}",
+        connect_args={"check_same_thread": False},
+    )
+    TestingSessionLocal = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+    Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(db_tools, "SessionLocal", TestingSessionLocal)
+
+    bad_payload = cast(Any, {"text": "bad payload"})
+    result = db_tools.save_headlines_to_db(bad_payload)
+    assert "Invalid payload" in result
+
+
+def test_save_headlines_to_db_counts_invalid_entries(monkeypatch, tmp_path):
+    test_db_path = tmp_path / "agents_tools_test_invalid_entries.db"
+    engine = create_engine(
+        f"sqlite:///{test_db_path}",
+        connect_args={"check_same_thread": False},
+    )
+    TestingSessionLocal = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+    Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(db_tools, "SessionLocal", TestingSessionLocal)
+
+    payload = [
+        {"text": "   ", "is_real": True},
+        {"text": "Florida man valid", "is_real": False, "source_url": None},
+        {"text": "Florida man invalid bool", "is_real": "false"},
+    ]
+
+    result = db_tools.save_headlines_to_db(payload)
+    assert "Saved 1" in result
+    assert "invalid" in result
