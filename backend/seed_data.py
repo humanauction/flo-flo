@@ -9,17 +9,23 @@ test_headlines = [
         "text": "Florida man arrested for teaching squirrels to "
                 "attack his ex-girlfriend",
         "is_real": True,
-        "source_url": "https://www.clickorlando.com/news/2019/04/18/florida-man-accused-of-training-squirrels-to-attack/"
+        "source_url": (
+            "https://www.clickorlando.com/news/2019/04/18/florida-man-accused-of-training-squirrels-to-attack/"
+        )
     },
     {
         "text": "Florida man throws alligator through drive-thru window",
         "is_real": True,
-        "source_url": "https://www.nbcnews.com/news/us-news/florida-man-threw-alligator-through-drive-thru-window-police-say-n856546"
+        "source_url": (
+            "https://www.nbcnews.com/news/us-news/florida-man-threw-alligator-through-drive-thru-window-police-say-n856546"
+        )
     },
     {
         "text": "Florida man attempts to pay for McDonald's with bag of weed",
         "is_real": True,
-        "source_url": "https://www.palmbeachpost.com/story/news/crime/2018/03/02/florida-man-tried-to-pay-for-mcdonalds-order-with-weed-cops-say/9875026007/"
+        "source_url": (
+            "https://www.palmbeachpost.com/story/news/crime/2018/03/02/florida-man-tried-to-pay-for-mcdonalds-order-with-weed-cops-say/9875026007/"
+        )
     },
     {
         "text": "Florida man caught riding manatee while "

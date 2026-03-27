@@ -2,10 +2,14 @@ import requests
 from bs4 import BeautifulSoup
 from typing import List, Dict
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
 MAX_SCRAPE_COUNT = 50
+DEFAULT_TIMEOUT_SECONDS = 10
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_BACKOFF_BASE_SECONDS = 0.5
 
 
 class HeadlineScraper:
@@ -14,19 +18,73 @@ class HeadlineScraper:
     online sources and news outlets.
     """
 
-    def __init__(self, target_url: str = "https://floridaman.com/"):
+    def __init__(
+        self,
+        target_url: str = "https://floridaman.com/",
+        timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
+        max_retries: int = DEFAULT_MAX_RETRIES,
+        backoff_base_seconds: float = DEFAULT_BACKOFF_BASE_SECONDS,
+    ):
         if not isinstance(target_url, str) or not target_url.strip():
             raise ValueError("target_url must be a non-empty string")
         if not target_url.startswith(("http://", "https://")):
             raise ValueError("target_url must start with http:// or https://")
+        if not isinstance(timeout_seconds, int) or timeout_seconds < 1:
+            raise ValueError("timeout_seconds must be a positive integer")
+        if not isinstance(max_retries, int) or max_retries < 1:
+            raise ValueError("max_retries must be a positive integer")
+        if (
+            not isinstance(backoff_base_seconds, (int, float))
+            or backoff_base_seconds <= 0
+        ):
+            raise ValueError(
+                "backoff_base_seconds must be a positive number"
+            )
 
         self.target_url = target_url
+        self.timeout_seconds = timeout_seconds
+        self.max_retries = max_retries
+        self.backoff_base_seconds = float(backoff_base_seconds)
         self.headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36"
             )
         }
+
+    def _fetch_with_retries(self) -> requests.Response | None:
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                response = requests.get(
+                    self.target_url,
+                    headers=self.headers,
+                    timeout=self.timeout_seconds,
+                )
+                response.raise_for_status()
+                return response
+            except requests.RequestException as exc:
+                if attempt >= self.max_retries:
+                    logger.error(
+                        "Scrape failed after %s attempts for %s: %s",
+                        self.max_retries,
+                        self.target_url,
+                        exc,
+                    )
+                    return None
+
+                backoff = self.backoff_base_seconds * (2 ** (attempt - 1))
+                logger.warning(
+                    "Scrape attempt %s/%s failed for %s: %s. "
+                    "Retrying in %.2fs",
+                    attempt,
+                    self.max_retries,
+                    self.target_url,
+                    exc,
+                    backoff,
+                )
+                time.sleep(backoff)
+
+        return None
 
     @staticmethod
     def _normalize_text(value: str) -> str:
@@ -64,12 +122,9 @@ class HeadlineScraper:
     def scrape_floridaman_com(self) -> List[Dict[str, str]]:
         """Scrape headlines from floridaman.com"""
         try:
-            response = requests.get(
-                self.target_url,
-                headers=self.headers,
-                timeout=10
-            )
-            response.raise_for_status()
+            response = self._fetch_with_retries()
+            if response is None:
+                return []
 
             soup = BeautifulSoup(response.text, 'html.parser')
             headlines: List[Dict[str, str]] = []
