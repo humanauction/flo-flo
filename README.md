@@ -403,8 +403,8 @@ This repository uses three GitHub Actions workflows:
 - File: `.github/workflows/python-tests.ci.yml`
 - Trigger: push/pull_request on backend or agents changes
 - Runs:
-    - backend tests with markers: not external and not openai
-    - agent tests with markers: not external and not openai
+  - backend tests with markers: not external and not openai
+  - agent tests with markers: not external and not openai
 - Coverage: uploads backend coverage.xml to Codecov
 
 1. Frontend Tests
@@ -412,20 +412,20 @@ This repository uses three GitHub Actions workflows:
 - File: `.github/workflows/frontend-tests.ci.yml`
 - Trigger: push/pull_request on frontend changes
 - Runs:
-    - npm ci
-    - npm test -- --coverage
+  - npm ci
+  - npm test -- --coverage
 
 1. Integration Tests (Manual)
 
 - File: `.github/workflows/integration-tests.manual.yml`
 - Trigger:
-    - workflow_dispatch (manual)
-    - weekly schedule (Monday 06:00 UTC)
+  - workflow_dispatch (manual)
+  - weekly schedule (Monday 06:00 UTC)
 - Inputs:
-    - suite: external | openai | all
+  - suite: external | openai | all
 - Runs:
-    - external-marked tests across backend and agents
-    - openai-marked tests (only when OPENAI_API_KEY secret exists)
+  - external-marked tests across backend and agents
+  - openai-marked tests (only when OPENAI_API_KEY secret exists)
 
 ## Contributing
 

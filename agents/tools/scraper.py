@@ -32,7 +32,9 @@ class HeadlineScraper:
     def _normalize_text(value: str) -> str:
         return " ".join(value.split()).strip()
 
-    def _dedupe_headlines(self, headlines: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    def _dedupe_headlines(
+            self,
+            headlines: List[Dict[str, str]]) -> List[Dict[str, str]]:
         seen: set[str] = set()
         deduped: List[Dict[str, str]] = []
 

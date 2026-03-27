@@ -41,6 +41,7 @@ def _normalize_headline_payload(item: Any) -> Dict[str, Any] | None:
 
 
 def save_headlines_to_db(headlines: List[Dict[str, Any]]) -> str:
+    """Save scraped headlines to the database"""
     if not isinstance(headlines, list):
         return "Invalid payload: headlines must be a list"
     if len(headlines) > MAX_HEADLINE_BATCH:
@@ -70,7 +71,9 @@ def save_headlines_to_db(headlines: List[Dict[str, Any]]) -> str:
                 logger.debug(f"Saved: {normalized['text'][:50]}...")
             except ValueError:
                 skipped += 1
-                logger.debug(f"Skipped duplicate: {normalized['text'][:50]}...")
+                logger.debug(
+                    f"Skipped duplicate: {normalized['text'][:50]}..."
+                )
 
         message = f"Saved {saved} new headlines"
         if skipped > 0:
