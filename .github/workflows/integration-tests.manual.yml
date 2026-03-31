@@ -28,12 +28,13 @@ jobs:
               run: |
                   python -m pip install --upgrade pip
                   pip install -r backend/requirements.txt
+                  pip install -e agents
                   pip install pytest pytest-asyncio pytest-cov
             - name: Run external-marked tests
               run: pytest -m "external" -q -rs backend/tests agents/tests
 
     openai:
-        if: ${{ (github.event_name == 'schedule' || inputs.suite == 'openai' || inputs.suite == 'all') && secrets.OPENAI_API_KEY != '' }}
+        if: ${{ github.event_name == 'schedule' || inputs.suite == 'openai' || inputs.suite == 'all' }}
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
@@ -44,15 +45,14 @@ jobs:
               run: |
                   python -m pip install --upgrade pip
                   pip install -r backend/requirements.txt
+                  pip install -e agents
                   pip install pytest pytest-asyncio pytest-cov
             - name: Run OpenAI-marked tests
               env:
                   OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-              run: pytest -v -m "openai" agents/tests
-
-    no-openai-secret:
-        if: ${{ (github.event_name == 'workflow_dispatch') && (inputs.suite == 'openai' || inputs.suite == 'all') && secrets.OPENAI_API_KEY == '' }}
-        runs-on: ubuntu-latest
-        steps:
-            - name: Skip message
-              run: echo "OPENAI_API_KEY is not set. Skipping OpenAI tests."
+              run: |
+                  if [ -n "$OPENAI_API_KEY" ]; then
+                    pytest -v -m "openai" agents/tests
+                  else
+                    echo "OPENAI_API_KEY is not set. Skipping OpenAI tests."
+                  fi
