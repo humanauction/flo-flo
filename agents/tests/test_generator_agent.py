@@ -52,7 +52,7 @@ def _collect_text_chunks(event) -> list[str]:
 @pytest.mark.asyncio
 async def test_generator_agent_with_real_openai_output_quality_shape():
     # Import inside test so missing key/config doesn't break collection.
-    from agents.src.agents.generator_agent import create_generator_agent
+    from src.agents.generator_agent import create_generator_agent
 
     agent = create_generator_agent()
 
