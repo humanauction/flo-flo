@@ -1,9 +1,10 @@
-from pydantic_settings import BaseSettings
 from pathlib import Path
+
+from pydantic_settings import BaseSettings
 
 
 class AgentConfig(BaseSettings):
-    """AutoGen agent configuration"""
+    """AutoGen agent configuration."""
 
     openai_api_key: str
     openai_model: str = "gpt-4o-mini"
@@ -12,7 +13,10 @@ class AgentConfig(BaseSettings):
     track_tokens: bool = True
 
     class Config:
-        env_file = str(Path(__file__).parent.parent / "backend" / ".env")
+        # agents/src/agents/config.py -> repo root is parents[3]
+        env_file = str(
+            Path(__file__).resolve().parents[3] / "backend" / ".env"
+        )
         env_file_encoding = "utf-8"
         case_sensitive = False
         extra = "ignore"

@@ -1,25 +1,27 @@
+import logging
+
 from autogen_agentchat.agents import AssistantAgent
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from agents.tools.scraper import HeadlineScraper
-from agents.tools.database import save_headlines_to_db, get_db_stats
+
 from agents.config import config
-import logging
+from agents.tools.database import get_db_stats, save_headlines_to_db
+from agents.tools.scraper import HeadlineScraper
 
 logger = logging.getLogger(__name__)
 
 
 def create_scraper_agent() -> AssistantAgent:
-    """Create the web scraper agent"""
+    """Create the web scraper agent."""
 
     model_client = OpenAIChatCompletionClient(
         model=config.openai_model,
-        api_key=config.openai_api_key
+        api_key=config.openai_api_key,
     )
 
     def scrape_and_save(max_headlines: int = 10) -> str:
-        """Scrape headlines and save to database - SYNC function for AutoGen"""
+        """Scrape headlines and save to database for AutoGen."""
         try:
-            logger.info(f"🕷️ Scraping up to {max_headlines} headlines...")
+            logger.info("🕷️ Scraping up to %s headlines...", max_headlines)
 
             scraper = HeadlineScraper()
             headlines = scraper.scrape()[:max_headlines]
@@ -27,24 +29,22 @@ def create_scraper_agent() -> AssistantAgent:
             if not headlines:
                 return "❌ No headlines scraped. Check scraper configuration."
 
-            # Format for database
             formatted = [
                 {
                     "text": h["text"],
                     "is_real": True,
-                    "source_url": h["source_url"]
+                    "source_url": h["source_url"],
                 }
                 for h in headlines
             ]
 
-            # Save to database
             result = save_headlines_to_db(formatted)
             stats = get_db_stats()
 
             return f"✅ Scraping complete!\n\n{result}\n\n{stats}"
 
         except Exception as e:
-            logger.error(f"Scraper tool failed: {e}", exc_info=True)
+            logger.error("Scraper tool failed: %s", e, exc_info=True)
             return f"❌ Scraping failed: {str(e)}"
 
     agent = AssistantAgent(

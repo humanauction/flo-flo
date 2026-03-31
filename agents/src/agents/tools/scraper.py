@@ -1,8 +1,9 @@
-import requests
-from bs4 import BeautifulSoup
-from typing import List, Dict
 import logging
 import time
+from typing import Dict, List
+
+import requests
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -37,9 +38,7 @@ class HeadlineScraper:
             not isinstance(backoff_base_seconds, (int, float))
             or backoff_base_seconds <= 0
         ):
-            raise ValueError(
-                "backoff_base_seconds must be a positive number"
-            )
+            raise ValueError("backoff_base_seconds must be a positive number")
 
         self.target_url = target_url
         self.timeout_seconds = timeout_seconds
@@ -74,8 +73,10 @@ class HeadlineScraper:
 
                 backoff = self.backoff_base_seconds * (2 ** (attempt - 1))
                 logger.warning(
-                    "Scrape attempt %s/%s failed for %s: %s. "
-                    "Retrying in %.2fs",
+                    (
+                        "Scrape attempt %s/%s failed for %s: %s. "
+                        "Retrying in %.2fs"
+                    ),
                     attempt,
                     self.max_retries,
                     self.target_url,
@@ -91,8 +92,9 @@ class HeadlineScraper:
         return " ".join(value.split()).strip()
 
     def _dedupe_headlines(
-            self,
-            headlines: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        self,
+        headlines: List[Dict[str, str]],
+    ) -> List[Dict[str, str]]:
         seen: set[str] = set()
         deduped: List[Dict[str, str]] = []
 
@@ -120,20 +122,20 @@ class HeadlineScraper:
         return deduped
 
     def scrape_floridaman_com(self) -> List[Dict[str, str]]:
-        """Scrape headlines from floridaman.com"""
+        """Scrape headlines from floridaman.com."""
         try:
             response = self._fetch_with_retries()
             if response is None:
                 return []
 
-            soup = BeautifulSoup(response.text, 'html.parser')
+            soup = BeautifulSoup(response.text, "html.parser")
             headlines: List[Dict[str, str]] = []
 
             articles = soup.find_all("article")
             if not articles:
                 articles = soup.find_all("div", class_="post")
 
-            for article in articles[:10]:  # Limit to 10 per scrape
+            for article in articles[:10]:
                 title_elem = article.find(["h1", "h2", "h3", "a"])
                 link_elem = article.find("a", href=True)
 
@@ -148,24 +150,23 @@ class HeadlineScraper:
                         )
 
                     if title and "florida man" in title.lower():
-                        headlines.append({
-                            "text": title,
-                            "source_url": url
-                        })
+                        headlines.append({"text": title, "source_url": url})
 
             headlines = self._dedupe_headlines(headlines)
 
             logger.info(
-                f"Scraped {len(headlines)} headlines from {self.target_url}"
+                "Scraped %s headlines from %s",
+                len(headlines),
+                self.target_url,
             )
             return headlines
 
         except Exception as e:
-            logger.error(f"Error scraping {self.target_url}: {e}")
+            logger.error("Error scraping %s: %s", self.target_url, e)
             return []
 
     def scrape_fallback(self) -> List[Dict[str, str]]:
-        """Fallback headlines if scraping fails"""
+        """Fallback headlines if scraping fails."""
         return [
             {
                 "text": (
@@ -176,32 +177,33 @@ class HeadlineScraper:
                     "https://www.nbcnews.com/news/us-news/"
                     "florida-man-threw-alligator-through-drive-thru-window-"
                     "police-say-n856546"
-                )
+                ),
             },
             {
                 "text": (
-                    "Florida man caught on camera licking doorbell for 3 hours"
+                    "Florida man caught on camera licking doorbell "
+                    "for 3 hours"
                 ),
                 "source_url": (
                     "https://www.cnn.com/2019/01/07/us/"
                     "doorbell-licker-california-trnd/index.html"
-                )
+                ),
             },
             {
                 "text": (
-                    "Florida man tries to pay for McDonald's with bag of "
-                    "marijuana"
+                    "Florida man tries to pay for McDonald's with bag "
+                    "of marijuana"
                 ),
                 "source_url": (
                     "https://www.palmbeachpost.com/story/news/crime/2018/03/"
                     "02/florida-man-tried-to-pay-for-mcdonalds-order-with-"
                     "weed-cops-say/9875026007/"
-                )
+                ),
             },
         ]
 
     def scrape(self) -> List[Dict[str, str]]:
-        """Main scrape method with fallback"""
+        """Main scrape method with fallback."""
         headlines = self.scrape_floridaman_com()
 
         if not headlines:
@@ -212,7 +214,7 @@ class HeadlineScraper:
 
 
 def scrape_headlines(max_count: int = 10) -> str:
-    """AutoGen agent tool function"""
+    """AutoGen agent tool function."""
     if not isinstance(max_count, int):
         return "Invalid max_count: must be an integer"
     if max_count < 1 or max_count > MAX_SCRAPE_COUNT:

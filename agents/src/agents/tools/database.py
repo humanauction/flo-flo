@@ -1,12 +1,14 @@
-import sys
-import os
 import logging
-from typing import List, Dict, Any
+import os
+import sys
+from typing import Any
 
-# Add backend to path (must be before app imports)
+# Ensure backend app package is importable when running only the agents env.
 sys.path.insert(
     0,
-    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../backend"))
+    os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../../../backend")
+    ),
 )
 
 from app.db.database import SessionLocal  # noqa: E402
@@ -17,7 +19,7 @@ logger = logging.getLogger(__name__)
 MAX_HEADLINE_BATCH = 100
 
 
-def _normalize_headline_payload(item: Any) -> Dict[str, Any] | None:
+def _normalize_headline_payload(item: Any) -> dict[str, Any] | None:
     if not isinstance(item, dict):
         return None
 
@@ -40,13 +42,13 @@ def _normalize_headline_payload(item: Any) -> Dict[str, Any] | None:
     }
 
 
-def save_headlines_to_db(headlines: List[Dict[str, Any]]) -> str:
-    """Save scraped headlines to the database"""
+def save_headlines_to_db(headlines: list[dict[str, Any]]) -> str:
+    """Save scraped headlines to the database."""
     if not isinstance(headlines, list):
         return "Invalid payload: headlines must be a list"
     if len(headlines) > MAX_HEADLINE_BATCH:
         return f"Invalid payload: max {MAX_HEADLINE_BATCH} headlines per batch"
-    """Save scraped headlines to the database"""
+
     db = SessionLocal()
     service = HeadlineService(db)
 
@@ -65,14 +67,15 @@ def save_headlines_to_db(headlines: List[Dict[str, Any]]) -> str:
                 service.add_headline(
                     text=normalized["text"],
                     is_real=normalized["is_real"],
-                    source_url=normalized["source_url"]
+                    source_url=normalized["source_url"],
                 )
                 saved += 1
-                logger.debug(f"Saved: {normalized['text'][:50]}...")
+                logger.debug("Saved: %s...", normalized["text"][:50])
             except ValueError:
                 skipped += 1
                 logger.debug(
-                    f"Skipped duplicate: {normalized['text'][:50]}..."
+                    "Skipped duplicate: %s...",
+                    normalized["text"][:50],
                 )
 
         message = f"Saved {saved} new headlines"
@@ -84,14 +87,14 @@ def save_headlines_to_db(headlines: List[Dict[str, Any]]) -> str:
         return message
 
     except Exception as e:
-        logger.error(f"Database save failed: {e}", exc_info=True)
+        logger.error("Database save failed: %s", e, exc_info=True)
         return f"Database error: {str(e)}"
     finally:
         db.close()
 
 
 def get_db_stats() -> str:
-    """Get database statistics"""
+    """Get database statistics."""
     db = SessionLocal()
     service = HeadlineService(db)
 
@@ -104,7 +107,7 @@ def get_db_stats() -> str:
             f"  Fake: {stats['fake_headlines']}"
         )
     except Exception as e:
-        logger.error(f"Stats retrieval failed: {e}")
+        logger.error("Stats retrieval failed: %s", e)
         return f"❌ Could not fetch stats: {str(e)}"
     finally:
         db.close()
