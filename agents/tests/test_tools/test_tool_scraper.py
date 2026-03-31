@@ -2,7 +2,7 @@ from typing import Any, cast
 
 import requests
 
-from src.agents.tools.scraper import HeadlineScraper, scrape_headlines
+from agents.tools.scraper import HeadlineScraper, scrape_headlines
 
 
 def test_scrape_fallback_returns_expected_shape():
@@ -26,7 +26,7 @@ def test_scrape_headlines_string_output_uses_fallback_without_network(
     # Force no network path
     monkeypatch.setattr(scraper, "scrape_floridaman_com", lambda: [])
     monkeypatch.setattr(
-        "src.agents.tools.scraper.HeadlineScraper",
+        "agents.tools.scraper.HeadlineScraper",
         lambda: scraper,
     )
 
@@ -86,8 +86,8 @@ def test_scrape_retries_then_succeeds(monkeypatch):
             raise requests.Timeout("timeout")
         return FakeResponse()
 
-    monkeypatch.setattr("src.agents.tools.scraper.requests.get", fake_get)
-    monkeypatch.setattr("src.agents.tools.scraper.time.sleep", sleeps.append)
+    monkeypatch.setattr("agents.tools.scraper.requests.get", fake_get)
+    monkeypatch.setattr("agents.tools.scraper.time.sleep", sleeps.append)
 
     scraper = HeadlineScraper(max_retries=3, backoff_base_seconds=0.1)
     results = scraper.scrape_floridaman_com()
@@ -103,8 +103,8 @@ def test_scrape_returns_empty_after_retry_exhaustion(monkeypatch):
     def always_fail(*args, **kwargs):
         raise requests.RequestException("network down")
 
-    monkeypatch.setattr("src.agents.tools.scraper.requests.get", always_fail)
-    monkeypatch.setattr("src.agents.tools.scraper.time.sleep", sleeps.append)
+    monkeypatch.setattr("agents.tools.scraper.requests.get", always_fail)
+    monkeypatch.setattr("agents.tools.scraper.time.sleep", sleeps.append)
 
     scraper = HeadlineScraper(max_retries=3, backoff_base_seconds=0.1)
     results = scraper.scrape_floridaman_com()

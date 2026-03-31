@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from src.agents.tools.scraper import HeadlineScraper
+from agents.tools.scraper import HeadlineScraper
 
 pytestmark = [pytest.mark.external]
 
