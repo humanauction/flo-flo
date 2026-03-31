@@ -1,6 +1,6 @@
 PYTHON := $(shell command -v python3 2>/dev/null || command -v python)
 
-.PHONY: check-venv init bk fr table test test-bk test-agents test-fr test-manual \
+.PHONY: check-venv init bk fr table test ts-bk ts-ag ts-fr ts-man \
 	migrate migrate-new migrate-down migrate-current lint help
 
 check-venv:
@@ -25,18 +25,18 @@ fr:
 # Backward-compatible alias (old target name)
 table: migrate
 
-test: test-bk test-agents
+test: ts-bk ts-ag ts-fr ts-man
 
-test-bk: check-venv
+ts-bk: check-venv
 	cd backend && $(PYTHON) -m pytest -vv -s -ra -m "not external and not openai" tests
 
-test-agents: check-venv
+ts-ag: check-venv
 	cd agents && $(PYTHON) -m pytest -vv -s -ra -m "not external and not openai" tests
 
-test-fr:
+ts-fr:
 	cd frontend && npm test -- --verbose
 
-test-manual: check-venv
+ts-man: check-venv
 	$(PYTHON) -m pytest -vv -s -ra -m external agents/tests/test_scraper_agent.py
 
 lint:
