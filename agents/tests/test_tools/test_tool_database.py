@@ -3,7 +3,7 @@ from typing import Any, cast
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from agents.src.agents.tools import database as db_tools
+from src.agents.tools import database as db_tools
 
 # Import backend metadata, models via path injection done in db_tools
 from app.db.database import Base
