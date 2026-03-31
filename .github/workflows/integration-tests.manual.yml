@@ -32,7 +32,12 @@ jobs:
                   pip install -e agents
                   pip install pytest pytest-asyncio pytest-cov
             - name: Run external-marked tests
-              run: pytest -m "external" -q -rs backend/tests agents/tests
+              run: |
+                  (cd backend && pytest -m "external" -q -rs) || code=$?
+                  if [ "${code:-0}" -ne 0 ] && [ "${code}" -ne 5 ]; then
+                    exit "${code}"
+                  fi
+                  (cd agents && pytest -m "external" -q -rs)
 
     openai:
         if: ${{ github.event_name == 'schedule' || inputs.suite == 'openai' || inputs.suite == 'all' }}
@@ -54,7 +59,10 @@ jobs:
                   OPENAI_API_KEY: ${{ secrets['OPENAI_API_KEY'] }}
               run: |
                   if [ -n "$OPENAI_API_KEY" ]; then
-                    pytest -v -m "openai" agents/tests
+                    (cd agents && pytest -v -m "openai" -rs) || code=$?
+                    if [ "${code:-0}" -ne 0 ] && [ "${code}" -ne 5 ]; then
+                      exit "${code}"
+                    fi
                   else
                     echo "OPENAI_API_KEY is not set. Skipping OpenAI tests."
                   fi

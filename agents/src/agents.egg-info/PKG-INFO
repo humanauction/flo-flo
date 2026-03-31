@@ -2,3 +2,9 @@ Metadata-Version: 2.4
 Name: agents
 Version: 0.1.0
 Requires-Python: >=3.13
+Requires-Dist: autogen-agentchat>=0.4.0
+Requires-Dist: autogen-ext[openai]>=0.4.0
+Requires-Dist: beautifulsoup4==4.12.3
+Requires-Dist: pydantic-settings==2.6.1
+Requires-Dist: requests==2.31.0
+Requires-Dist: sqlalchemy==2.0.36

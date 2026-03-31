@@ -1,4 +1,5 @@
 pyproject.toml
+requirements.txt
 app/__init__.py
 app/config.py
 app/main.py
@@ -18,4 +19,5 @@ app/services/headline_service.py
 flo_flo_backend.egg-info/PKG-INFO
 flo_flo_backend.egg-info/SOURCES.txt
 flo_flo_backend.egg-info/dependency_links.txt
+flo_flo_backend.egg-info/requires.txt
 flo_flo_backend.egg-info/top_level.txt

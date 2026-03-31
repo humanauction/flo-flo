@@ -7,6 +7,7 @@ src/agents/scraper_agent.py
 src/agents.egg-info/PKG-INFO
 src/agents.egg-info/SOURCES.txt
 src/agents.egg-info/dependency_links.txt
+src/agents.egg-info/requires.txt
 src/agents.egg-info/top_level.txt
 src/agents/tools/__init__.py
 src/agents/tools/database.py
