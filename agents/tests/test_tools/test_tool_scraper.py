@@ -2,7 +2,7 @@ from typing import Any, cast
 
 import requests
 
-from agents.tools.scraper import HeadlineScraper, scrape_headlines
+from agents.src.agents.tools.scraper import HeadlineScraper, scrape_headlines
 
 
 def test_scrape_fallback_returns_expected_shape():
