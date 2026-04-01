@@ -2,6 +2,7 @@
 
 A true/false game where players guess if a headline is a real "Florida Man" story or AI-generated fiction.
 
+[![Integration Tests (Manual)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml) [![Python Tests (Offline)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml) [![Frontend Tests](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml)
 ## Introduction
 
 This project combines web scraping, multi-agent AI systems, and a frontend to create a game based on the internet meme: Florida Man.
@@ -134,7 +135,7 @@ flo-flo/
 #### 3.3 Improve Scraping
 
 - [ ] Add multiple news sources (not just floridaman.com)
-- [ ] Add retry/backoff and timeout strategy
+- [x] Add retry/backoff and timeout strategy
 - [ ] Add stronger headline validation and dedupe metrics
 
 #### 3.4 Enhance Generation
@@ -403,8 +404,8 @@ This repository uses three GitHub Actions workflows:
 - File: `.github/workflows/python-tests.ci.yml`
 - Trigger: push/pull_request on backend or agents changes
 - Runs:
-  - backend tests with markers: not external and not openai
-  - agent tests with markers: not external and not openai
+    - backend tests with markers: not external and not openai
+    - agent tests with markers: not external and not openai
 - Coverage: uploads backend coverage.xml to Codecov
 
 1. Frontend Tests
@@ -412,20 +413,20 @@ This repository uses three GitHub Actions workflows:
 - File: `.github/workflows/frontend-tests.ci.yml`
 - Trigger: push/pull_request on frontend changes
 - Runs:
-  - npm ci
-  - npm test -- --coverage
+    - npm ci
+    - npm test -- --coverage
 
 1. Integration Tests (Manual)
 
 - File: `.github/workflows/integration-tests.manual.yml`
 - Trigger:
-  - workflow_dispatch (manual)
-  - weekly schedule (Monday 06:00 UTC)
+    - workflow_dispatch (manual)
+    - weekly schedule (Monday 06:00 UTC)
 - Inputs:
-  - suite: external | openai | all
+    - suite: external | openai | all
 - Runs:
-  - external-marked tests across backend and agents
-  - openai-marked tests (only when OPENAI_API_KEY secret exists)
+    - external-marked tests across backend and agents
+    - openai-marked tests (only when OPENAI_API_KEY secret exists)
 
 ## Contributing
 

@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Dict, List
+from typing import Callable, Dict, List, TypedDict
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,6 +11,28 @@ MAX_SCRAPE_COUNT = 50
 DEFAULT_TIMEOUT_SECONDS = 10
 DEFAULT_MAX_RETRIES = 3
 DEFAULT_BACKOFF_BASE_SECONDS = 0.5
+SOURCE_FLORIDAMAN_PRIMARY = "floridaman_primary"
+SOURCE_FALLBACK_STATIC = "fallback_static"
+
+
+class SourceMetrics(TypedDict):
+    fetched: int
+    kept: int
+    invalid: int
+    duplicates: int
+
+
+class ScrapeMetrics(TypedDict):
+    fetched_total: int
+    kept_total: int
+    invalid_dropped: int
+    duplicates_dropped: int
+    by_source: Dict[str, SourceMetrics]
+
+
+class ScrapeResult(TypedDict):
+    headlines: List[Dict[str, str]]
+    metrics: ScrapeMetrics
 
 
 class HeadlineScraper:
@@ -25,6 +47,13 @@ class HeadlineScraper:
         timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
         max_retries: int = DEFAULT_MAX_RETRIES,
         backoff_base_seconds: float = DEFAULT_BACKOFF_BASE_SECONDS,
+        enabled_sources: tuple[str, ...] = (
+            SOURCE_FLORIDAMAN_PRIMARY,
+            SOURCE_FALLBACK_STATIC,
+        ),
+        source_max_items: int = 10,
+        min_headline_chars: int = 12,
+        require_florida_keyword: bool = True,
     ):
         if not isinstance(target_url, str) or not target_url.strip():
             raise ValueError("target_url must be a non-empty string")
@@ -39,16 +68,34 @@ class HeadlineScraper:
             or backoff_base_seconds <= 0
         ):
             raise ValueError("backoff_base_seconds must be a positive number")
+        if not enabled_sources:
+            raise ValueError(
+                "enabled_sources must contain at least one source"
+            )
+        if not isinstance(source_max_items, int) or source_max_items < 1:
+            raise ValueError("source_max_items must be a positive integer")
+        if not isinstance(min_headline_chars, int) or min_headline_chars < 1:
+            raise ValueError("min_headline_chars must be a positive integer")
+        if not isinstance(require_florida_keyword, bool):
+            raise ValueError("require_florida_keyword must be a boolean")
 
         self.target_url = target_url
         self.timeout_seconds = timeout_seconds
         self.max_retries = max_retries
         self.backoff_base_seconds = float(backoff_base_seconds)
+        self.enabled_sources = enabled_sources
+        self.source_max_items = source_max_items
+        self.min_headline_chars = min_headline_chars
+        self.require_florida_keyword = require_florida_keyword
         self.headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36"
             )
+        }
+        self._source_adapters: dict[str, Callable[[], List[Dict[str, str]]]] = {
+            SOURCE_FLORIDAMAN_PRIMARY: self.scrape_floridaman_com,
+            SOURCE_FALLBACK_STATIC: self.scrape_fallback,
         }
 
     def _fetch_with_retries(self) -> requests.Response | None:
@@ -91,35 +138,82 @@ class HeadlineScraper:
     def _normalize_text(value: str) -> str:
         return " ".join(value.split()).strip()
 
-    def _dedupe_headlines(
+    @staticmethod
+    def _empty_source_metrics() -> SourceMetrics:
+        return {"fetched": 0, "kept": 0, "invalid": 0, "duplicates": 0}
+
+    def _empty_metrics(self) -> ScrapeMetrics:
+        return {
+            "fetched_total": 0,
+            "kept_total": 0,
+            "invalid_dropped": 0,
+            "duplicates_dropped": 0,
+            "by_source": {
+                source_id: self._empty_source_metrics()
+                for source_id in self.enabled_sources
+            },
+        }
+
+    def _sanitize_headline(
         self,
-        headlines: List[Dict[str, str]],
+        headline: Dict[str, str],
+    ) -> Dict[str, str] | None:
+        text = headline.get("text")
+        source_url = headline.get("source_url")
+
+        if not isinstance(text, str) or not text.strip():
+            return None
+        if not isinstance(source_url, str) or not source_url.strip():
+            return None
+
+        text_clean = self._normalize_text(text)
+        if len(text_clean) < self.min_headline_chars:
+            return None
+        if (
+            self.require_florida_keyword
+            and "florida man" not in text_clean.lower()
+        ):
+            return None
+
+        return {
+            "text": text_clean,
+            "source_url": source_url.strip(),
+        }
+
+    def _collect_source(
+        self,
+        source_id: str,
+        raw_headlines: List[Dict[str, str]],
+        seen: set[str],
+        metrics: ScrapeMetrics,
     ) -> List[Dict[str, str]]:
-        seen: set[str] = set()
-        deduped: List[Dict[str, str]] = []
+        source_metrics = metrics["by_source"].setdefault(
+            source_id,
+            self._empty_source_metrics(),
+        )
+        source_metrics["fetched"] += len(raw_headlines)
+        metrics["fetched_total"] += len(raw_headlines)
 
-        for headline in headlines:
-            text = headline.get("text")
-            source_url = headline.get("source_url")
-
-            if not isinstance(text, str) or not text.strip():
+        kept: List[Dict[str, str]] = []
+        for item in raw_headlines:
+            cleaned = self._sanitize_headline(item)
+            if cleaned is None:
+                source_metrics["invalid"] += 1
+                metrics["invalid_dropped"] += 1
                 continue
-            if not isinstance(source_url, str) or not source_url.strip():
-                continue
 
-            normalized = self._normalize_text(text).lower()
+            normalized = cleaned["text"].lower()
             if normalized in seen:
+                source_metrics["duplicates"] += 1
+                metrics["duplicates_dropped"] += 1
                 continue
 
             seen.add(normalized)
-            deduped.append(
-                {
-                    "text": self._normalize_text(text),
-                    "source_url": source_url.strip(),
-                }
-            )
+            source_metrics["kept"] += 1
+            metrics["kept_total"] += 1
+            kept.append(cleaned)
 
-        return deduped
+        return kept
 
     def scrape_floridaman_com(self) -> List[Dict[str, str]]:
         """Scrape headlines from floridaman.com."""
@@ -135,7 +229,7 @@ class HeadlineScraper:
             if not articles:
                 articles = soup.find_all("div", class_="post")
 
-            for article in articles[:10]:
+            for article in articles[: self.source_max_items]:
                 title_elem = article.find(["h1", "h2", "h3", "a"])
                 link_elem = article.find("a", href=True)
 
@@ -151,8 +245,6 @@ class HeadlineScraper:
 
                     if title and "florida man" in title.lower():
                         headlines.append({"text": title, "source_url": url})
-
-            headlines = self._dedupe_headlines(headlines)
 
             logger.info(
                 "Scraped %s headlines from %s",
@@ -202,15 +294,31 @@ class HeadlineScraper:
             },
         ]
 
+    def scrape_with_metrics(self) -> ScrapeResult:
+        """Scrape headlines from configured sources with metrics."""
+        metrics = self._empty_metrics()
+        seen: set[str] = set()
+        merged: List[Dict[str, str]] = []
+
+        for source_id in self.enabled_sources:
+            if source_id == SOURCE_FALLBACK_STATIC and metrics["kept_total"] > 0:
+                # Conservative strategy: fallback only if primary === 0 kept.
+                continue
+
+            adapter = self._source_adapters.get(source_id)
+            if adapter is None:
+                logger.warning("Unknown source id configured: %s", source_id)
+                continue
+
+            raw = adapter()
+            kept = self._collect_source(source_id, raw, seen, metrics)
+            merged.extend(kept)
+
+        return {"headlines": merged, "metrics": metrics}
+
     def scrape(self) -> List[Dict[str, str]]:
-        """Main scrape method with fallback."""
-        headlines = self.scrape_floridaman_com()
-
-        if not headlines:
-            logger.warning("Primary scrape failed, using fallback headlines")
-            headlines = self.scrape_fallback()
-
-        return self._dedupe_headlines(headlines)
+        """Backwards-compatible list-only API."""
+        return self.scrape_with_metrics()["headlines"]
 
 
 def scrape_headlines(max_count: int = 10) -> str:
@@ -221,12 +329,30 @@ def scrape_headlines(max_count: int = 10) -> str:
         return f"Invalid max_count: must be between 1 and {MAX_SCRAPE_COUNT}"
 
     scraper = HeadlineScraper()
-    headlines = scraper.scrape()[:max_count]
+    scrape_result = scraper.scrape_with_metrics()
+    headlines = scrape_result["headlines"][:max_count]
+    metrics = scrape_result["metrics"]
 
     result = f"Scraped {len(headlines)} headlines:\n\n"
     for i, h in enumerate(headlines, 1):
         text = h.get("text", "(missing text)")
         source = h.get("source_url", "(missing source)")
         result += f"{i}. {text}\n   Source: {source}\n\n"
+
+    result += (
+        "Metrics:\n"
+        f"- fetched_total={metrics['fetched_total']}\n"
+        f"- kept_total={metrics['kept_total']}\n"
+        f"- invalid_dropped={metrics['invalid_dropped']}\n"
+        f"- duplicates_dropped={metrics['duplicates_dropped']}\n"
+    )
+    for source_id, source_metrics in metrics["by_source"].items():
+        result += (
+            f"- {source_id}: "
+            f"fetched={source_metrics['fetched']}, "
+            f"kept={source_metrics['kept']}, "
+            f"invalid={source_metrics['invalid']}, "
+            f"duplicates={source_metrics['duplicates']}\n"
+        )
 
     return result

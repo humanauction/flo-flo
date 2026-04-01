@@ -97,6 +97,63 @@ def test_scrape_retries_then_succeeds(monkeypatch):
     assert len(sleeps) == 1
 
 
+def test_scrape_with_metrics_tracks_source_counts(monkeypatch):
+
+    scraper = HeadlineScraper()
+
+    monkeypatch.setattr(
+        scraper,
+        "scrape_floridaman_com",
+        lambda: [
+            {
+                "text": "Florida Man does one thing",
+                "source_url": "https://example.com/thing",
+            },
+            {
+                "text": "Florida Man does one thing",
+                "source_url": "https://example.com/duplicate",
+            },
+            {
+                "text": "invalid",
+                "source_url": "",
+            },
+        ],
+    )
+    monkeypatch.setattr(
+        scraper,
+        "scrape_fallback",
+        lambda: [],
+    )
+
+    result = scraper.scrape_with_metrics()
+    headlines = result["headlines"]
+    metrics = result["metrics"]
+
+    assert len(headlines) == 1
+    assert headlines[0]["text"] == "Florida Man does one thing"
+    assert metrics["fetched_total"] == 3
+    assert metrics["kept_total"] == 1
+    assert metrics["invalid_dropped"] == 1
+    assert metrics["duplicates_dropped"] == 1
+    assert metrics["by_source"]["floridaman_primary"]["fetched"] == 3
+    assert metrics["by_source"]["floridaman_primary"]["kept"] == 1
+    assert metrics["by_source"]["fallback_static"]["fetched"] == 0
+
+
+def test_scrape_with_metrics_uses_fallback_when_primary_empty(monkeypatch):
+
+    scraper = HeadlineScraper()
+
+    monkeypatch.setattr(scraper, "scrape_floridaman_com", lambda: [])
+
+    result = scraper.scrape_with_metrics()
+    metrics = result["metrics"]
+
+    assert len(result["headlines"]) >= 1
+    assert metrics["by_source"]["floridaman_primary"]["fetched"] == 0
+    assert metrics["by_source"]["fallback_static"]["fetched"] >= 1
+
+
 def test_scrape_returns_empty_after_retry_exhaustion(monkeypatch):
     sleeps: list[float] = []
 
@@ -111,3 +168,29 @@ def test_scrape_returns_empty_after_retry_exhaustion(monkeypatch):
 
     assert results == []
     assert len(sleeps) == 2
+
+
+def test_scrape_headlines_includes_metrics_summary(monkeypatch):
+
+    scraper = HeadlineScraper()
+
+    monkeypatch.setattr(
+        "agents.tools.scraper.HeadlineScraper",
+        lambda: scraper,
+    )
+    monkeypatch.setattr(
+        scraper,
+        "scrape_fallback",
+        lambda: [
+            {
+                "text": "Florida Man does one thing",
+                "source_url": "https://example.com/thing",
+            }
+        ],
+    )
+    output = scrape_headlines(max_count=1)
+
+    assert "Metrics:" in output
+    assert "fetched_total=" in output
+    assert "floridaman_primary:" in output
+    assert "fallback_static:" in output
