@@ -23,7 +23,6 @@ def test_scrape_headlines_string_output_uses_fallback_without_network(
 ):
     scraper = HeadlineScraper()
 
-    # Force no network path
     monkeypatch.setattr(scraper, "scrape_floridaman_com", lambda: [])
     monkeypatch.setattr(
         "agents.tools.scraper.HeadlineScraper",
@@ -98,7 +97,6 @@ def test_scrape_retries_then_succeeds(monkeypatch):
 
 
 def test_scrape_with_metrics_tracks_source_counts(monkeypatch):
-
     scraper = HeadlineScraper()
 
     monkeypatch.setattr(
@@ -119,11 +117,7 @@ def test_scrape_with_metrics_tracks_source_counts(monkeypatch):
             },
         ],
     )
-    monkeypatch.setattr(
-        scraper,
-        "scrape_fallback",
-        lambda: [],
-    )
+    monkeypatch.setattr(scraper, "scrape_fallback", lambda: [])
 
     result = scraper.scrape_with_metrics()
     headlines = result["headlines"]
@@ -141,9 +135,7 @@ def test_scrape_with_metrics_tracks_source_counts(monkeypatch):
 
 
 def test_scrape_with_metrics_uses_fallback_when_primary_empty(monkeypatch):
-
     scraper = HeadlineScraper()
-
     monkeypatch.setattr(scraper, "scrape_floridaman_com", lambda: [])
 
     result = scraper.scrape_with_metrics()
@@ -171,9 +163,9 @@ def test_scrape_returns_empty_after_retry_exhaustion(monkeypatch):
 
 
 def test_scrape_headlines_includes_metrics_summary(monkeypatch):
-
     scraper = HeadlineScraper()
 
+    monkeypatch.setattr(scraper, "scrape_floridaman_com", lambda: [])
     monkeypatch.setattr(
         "agents.tools.scraper.HeadlineScraper",
         lambda: scraper,
@@ -188,6 +180,7 @@ def test_scrape_headlines_includes_metrics_summary(monkeypatch):
             }
         ],
     )
+
     output = scrape_headlines(max_count=1)
 
     assert "Metrics:" in output
