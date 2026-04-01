@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import Callable, Dict, List, TypedDict
+from typing import Callable, Dict, List, TypedDict, cast
 
 import requests
 from bs4 import BeautifulSoup
@@ -93,9 +93,10 @@ class HeadlineScraper:
                 "AppleWebKit/537.36"
             )
         }
-        self._source_adapters: dict[str, Callable[[], List[Dict[str, str]]]] = {
-            SOURCE_FLORIDAMAN_PRIMARY: self.scrape_floridaman_com,
-            SOURCE_FALLBACK_STATIC: self.scrape_fallback,
+        # Store method names (not bound methods) so monkeypatching works.
+        self._source_adapters: dict[str, str] = {
+            SOURCE_FLORIDAMAN_PRIMARY: "scrape_floridaman_com",
+            SOURCE_FALLBACK_STATIC: "scrape_fallback",
         }
 
     def _fetch_with_retries(self) -> requests.Response | None:
@@ -301,15 +302,25 @@ class HeadlineScraper:
         merged: List[Dict[str, str]] = []
 
         for source_id in self.enabled_sources:
-            if source_id == SOURCE_FALLBACK_STATIC and metrics["kept_total"] > 0:
-                # Conservative strategy: fallback only if primary === 0 kept.
+            if (
+                source_id == SOURCE_FALLBACK_STATIC
+                and metrics["kept_total"] > 0
+            ):
+                # Conservative strategy: fallback only if primary == 0 kept.
                 continue
 
-            adapter = self._source_adapters.get(source_id)
-            if adapter is None:
-                logger.warning("Unknown source id configured: %s", source_id)
+            adapter_name = self._source_adapters.get(source_id)
+            if adapter_name is None:
                 continue
 
+            adapter_obj = getattr(self, adapter_name, None)
+            if adapter_obj is None or not callable(adapter_obj):
+                continue
+
+            adapter = cast(
+                Callable[[], List[Dict[str, str]]],
+                adapter_obj,
+            )
             raw = adapter()
             kept = self._collect_source(source_id, raw, seen, metrics)
             merged.extend(kept)
