@@ -112,4 +112,4 @@ frontend/README.md
 # Alembic migrations (optional - uncomment to not track migrations)
 # backend/alembic/versions/*.py
 
-mentor-defensive-coder.agent.md
+# mentor-defensive-coder.agent.md

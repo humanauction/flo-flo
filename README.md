@@ -1,46 +1,61 @@
 # Florida Man or Fiction
 
-A true/false game where players guess if a headline is a real "Florida Man" story or AI-generated fiction.
+A true/false game where players guess whether a headline is a real Florida Man story or AI-generated fiction.
 
-[![Integration Tests (Manual)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml) [![Python Tests (Offline)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml) [![Frontend Tests](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml)
+[![Integration Tests (Manual)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml)
+[![Python Tests (Offline)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml)
+[![Frontend Tests](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml)
+
 ## Introduction
 
-This project combines web scraping, multi-agent AI systems, and a frontend to create a game based on the internet meme: Florida Man.
+This project combines web scraping, multi-agent AI behavior, and a Next.js frontend into a playable Florida Man or Fiction game.
 
-**Concept:**
+Core loop:
 
-- **Frontend:** Simple true/false game interface
-- **Backend:** Multi-agent system that scrapes real Florida Man headlines and generates convincing fakes
-- **Gameplay:** Players decide if each headline is real or AI-generated
+- Frontend presents a headline card.
+- Backend serves real and fake headlines.
+- Player guesses real vs fake.
+- Admin/agent workflows keep the headline pool fresh.
+
+## Current Status Snapshot
+
+- Phase 1 and Phase 2 are complete.
+- Phase 3.3 has conservative source adapter/metrics support in scraper tooling.
+- Phase 3.4 In Progress.
+- CI split is stable:
+  - Offline tests run automatically.
+  - External/OpenAI paths are isolated to manual/scheduled integration workflow.
 
 ## Tech Stack
 
 ### Frontend
 
-- **Next.js 15** (React, TypeScript, App Router)
-- **Tailwind CSS** for styling
-- **Turbopack** for fast dev builds
+- Next.js 15 (App Router, TypeScript)
+- Tailwind CSS
+- Jest
 
 ### Backend
 
-- **Python 3.13+**
-- **FastAPI** for REST API
-- **SQLite** for headline storage (dev) / PostgreSQL (prod)
-- **Docker Compose** for local development (optional)
+- Python 3.13+
+- FastAPI
+- SQLAlchemy
+- Alembic
+- SQLite for dev (PostgreSQL planned for production)
 
-### AI Agents
+### Agents
 
-- **AutoGen 0.4+** (Microsoft) for multi-agent orchestration
-- **OpenAI GPT-4o-mini** for fake headline generation
-- **Vector DB (future):** Chroma or PGVector for RAG
-
-### Scraping
-
-- **Requests + BeautifulSoup4** for headline scraping
-- **Playwright** (optional) for JS-heavy sites
-- Target: <https://floridaman.com> and news outlets
+- AutoGen 0.4+
+- OpenAI GPT-4o-mini
+- Requests + BeautifulSoup for scraping
 
 ## Project Structure
+
+Notes:
+
+- This README intentionally keeps both current implemented layout and planned/continuity paths.
+- Some continuity entries are intentionally listed even if not currently present to support roadmap tracking across sessions.
+
+### Current Implemented Layout (Source Of Truth)
 
 ```text
 flo-flo/
@@ -49,7 +64,8 @@ flo-flo/
 │       ├── python-tests.ci.yml
 │       ├── frontend-tests.ci.yml
 │       └── integration-tests.manual.yml
-├── backend/                     # FastAPI + Alembic migrations
+├── backend/
+│   ├── pyproject.toml
 │   ├── app/
 │   │   ├── main.py
 │   │   ├── config.py
@@ -64,35 +80,77 @@ flo-flo/
 │   │   ├── routers/
 │   │   │   ├── game.py
 │   │   │   └── admin.py
-│   │   ├── services/
-│   │   │   └── headline_service.py
+│   │   └── services/
+│   │       └── headline_service.py
 │   ├── migrations/
 │   │   ├── env.py
 │   │   └── versions/
 │   ├── tests/
+│   │   ├── conftest.py
+│   │   ├── test_db/
+│   │   ├── test_routers/
+│   │   └── test_services/
 │   ├── alembic.ini
 │   ├── requirements.txt
-│   ├── seed_data.py
-│   └── .env
-├── agents/                      # AutoGen multi-agent system
-│   ├── config.py
-│   ├── scraper_agent.py
-│   ├── generator_agent.py
-│   ├── orchestrator.py
-│   └── tools/
-│       ├── scraper.py
-│       └── database.py
-├── frontend/                    # Next.js app
+│   └── seed_data.py
+├── agents/
+│   ├── pyproject.toml
+│   ├── pytest.ini
+│   ├── src/
+│   │   └── agents/
+│   │       ├── __init__.py
+│   │       ├── config.py
+│   │       ├── scraper_agent.py
+│   │       ├── generator_agent.py
+│   │       ├── orchestrator.py
+│   │       └── tools/
+│   │           ├── __init__.py
+│   │           ├── scraper.py
+│   │           ├── database.py
+│   │           └── generator_quality.py
+│   └── tests/
+│       ├── test_scraper_agent.py
+│       ├── test_generator_agent.py
+│       └── test_tools/
+│           ├── test_tool_scraper.py
+│           ├── test_tool_database.py
+│           └── test_tool_generator_quality.py
+├── frontend/
 │   ├── src/
 │   │   ├── app/
 │   │   ├── components/
 │   │   ├── lib/
 │   │   └── types/
 │   ├── __tests__/
+│   │   ├── components/
+│   │   └── lib/
 │   └── package.json
+├── tests/
+│   ├── test_api_integration.py
+│   └── test_e2e_headline_flow.py
 ├── makefile
 ├── .gitignore
 └── README.md
+```
+
+### Planned/Continuity Paths (Intentionally Retained)
+
+```text
+agents/
+├── config.py                    # planned compatibility shim
+├── scraper_agent.py             # planned compatibility shim
+├── generator_agent.py           # planned compatibility shim
+├── orchestrator.py              # planned compatibility shim
+└── tools/
+    ├── scraper.py               # planned compatibility shim
+    └── database.py              # planned compatibility shim
+
+frontend/__tests__/components/
+├── Game.test.tsx                # planned
+└── GameCard.test.tsx            # planned
+
+frontend/__tests__/lib/
+└── api.test.ts                  # implemented/planned expansion
 ```
 
 ## Development Roadmap
@@ -108,14 +166,14 @@ flo-flo/
 ### Phase 2: AI Agents ✅
 
 - [x] AutoGen 0.4+ agent setup
-- [x] Scraper agent (Agent 1: Collect real Florida Man headlines)
-- [x] Generator agent (Agent 2: Create fake headlines)
+- [x] Scraper agent (collect real headlines)
+- [x] Generator agent (create fake headlines)
 - [x] Database integration tools
 - [x] Orchestrator for agent coordination
 
 ### Phase 3: Agent Enhancement 🚧 (Current)
 
-**Goal:** Make agents robust, testable offline by default, and safely gate external/OpenAI paths.
+Goal: robust offline-first behavior, explicit external/openai test gates, stronger quality controls.
 
 #### 3.1 Fix Agent Execution
 
@@ -127,22 +185,22 @@ flo-flo/
 
 #### 3.2 Testing Strategy (Implemented)
 
-- [x] Offline tests as default (`not external and not openai`)
-- [x] External scraping tests marked with `@pytest.mark.external`
-- [x] OpenAI integration tests marked with `@pytest.mark.openai`
-- [x] Manual OpenAI workflow with secret guard
+- [x] Offline tests default (`not external and not openai`)
+- [x] External scraping tests marked `@pytest.mark.external`
+- [x] OpenAI integration tests marked `@pytest.mark.openai`
+- [x] Manual/scheduled integration workflow with secret guard
 
 #### 3.3 Improve Scraping
 
-- [ ] Add multiple news sources (not just floridaman.com)
-- [x] Add retry/backoff and timeout strategy
-- [ ] Add stronger headline validation and dedupe metrics
+- [ ] Add additional real news source adapters beyond current conservative setup
+- [x] Retry/backoff and timeout strategy
+- [x] Stronger validation and dedupe metrics (`scrape_with_metrics`)
 
-#### 3.4 Enhance Generation
+#### 3.4 Enhance Generation (Kickoff Started)
 
-- [ ] Connect generator path fully to OpenAI outputs (not template-only)
-- [ ] Add quality checks (length, plausibility, duplicate detection)
-- [ ] Add optional RAG context from real headlines
+- [ ] Connect generation path fully to OpenAI outputs (not template-only)
+- [x] Baseline quality checks (length, phrase plausibility, duplicate filtering)
+- [ ] Optional RAG context from real headlines
 
 #### 3.5 Admin Interface
 
@@ -151,53 +209,49 @@ flo-flo/
 
 ### Phase 4: Polish & Production
 
-- [ ] Add user accounts (optional: track personal stats)
-- [ ] Leaderboard system
-- [ ] Share results to social media
-- [ ] Error handling & loading states
-- [ ] Mobile responsiveness improvements
-- [ ] Deploy frontend (Vercel)
-- [ ] Deploy backend (Railway/Fly.io)
-- [ ] Set up PostgreSQL in production
-- [ ] Environment variable management
-- [ ] CI/CD pipeline
+- [ ] Accounts/stats (optional)
+- [ ] Leaderboard
+- [ ] Social sharing
+- [ ] UX loading/error polish
+- [ ] Mobile polish
+- [ ] Production deploy (frontend/backend)
+- [ ] PostgreSQL production setup
+- [ ] Env/config hardening
 
 ### Phase 5: Advanced Features (Future)
 
-- [ ] Vector DB for RAG (Chroma/PGVector)
-- [ ] Multi-model support (Claude, Gemini)
-- [ ] Difficulty levels (easy/hard headlines)
+- [ ] Vector DB/RAG
+- [ ] Multi-model support
+- [ ] Difficulty levels
 - [ ] Daily challenge mode
-- [ ] API rate limiting
-- [ ] Caching layer (Redis)
+- [ ] Rate limiting
+- [ ] Caching layer
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Python 3.11+
-- OpenAI API key (for AutoGen generator)
+- Node.js 18+
+- Python 3.13+
 
-### Installation
-
-**1. Clone the repo:**
+### Installation (Recommended, Repository Root)
 
 ```bash
 git clone https://github.com/humanauction/flo-flo.git
 cd flo-flo
+
+python3.13 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+
+# Install both packages editable
+python -m pip install -e backend -e agents
+
+# Test tooling
+python -m pip install pytest pytest-asyncio pytest-cov
 ```
 
-**2. Set up backend:**
-
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-**3. Configure environment:**
+### Environment
 
 Create `backend/.env`:
 
@@ -206,38 +260,12 @@ DATABASE_URL=sqlite:///./headlines.db
 OPENAI_API_KEY=your_key_here
 ```
 
-Create `agents/.env`:
+Optional agent knobs (if used in your local flow):
 
 ```env
-OPENAI_API_KEY=your_key_here
 OPENAI_MODEL=gpt-4o-mini
-```
-
-**4. Apply migrations:**
-
-```bash
-cd backend
-python -m alembic upgrade head
-```
-
-**5. Seed database:**
-
-```bash
-cd backend
-python seed_data.py
-```
-
-**6. Start backend:**
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-**7. Set up frontend (new terminal):**
-
-```bash
-cd frontend
-npm install
+MAX_HEADLINES_PER_SCRAPE=10
+TARGET_URL=https://floridaman.com/
 ```
 
 Create `frontend/.env.local`:
@@ -246,198 +274,110 @@ Create `frontend/.env.local`:
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-**8. Start frontend:**
+### Database + App Boot
 
 ```bash
+cd backend
+python -m alembic upgrade head
+python seed_data.py
+uvicorn app.main:app --reload --port 8000
+```
+
+```bash
+# in another terminal
+cd frontend
+npm install
 npm run dev
 ```
 
-**9. Play the game:**
-
-Visit <http://localhost:3000>
-
-**10. Run agents (optional):**
+### Run Agents
 
 ```bash
-# From project root
+# from repo root, with editable installs active
 python -m agents.orchestrator
 ```
 
-### Migration-first workflow
+## Migration-First Workflow
 
 Use Alembic as the only schema change path.
 
 ```bash
 cd backend
-
-# 1) Create a migration revision from model changes
 python -m alembic revision --autogenerate -m "describe schema change"
-
-# 2) Apply latest migrations
 python -m alembic upgrade head
-
-# 3) Seed data (optional, local/dev)
 python seed_data.py
 ```
 
-Do not call `Base.metadata.create_all()` in runtime startup code. Schema changes must be tracked through migrations to avoid drift.
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-
-```env
-DATABASE_URL=sqlite:///./headlines.db
-OPENAI_API_KEY=sk-...
-```
-
-### Agents (`agents/.env` or use backend)
-
-```env
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini
-MAX_HEADLINES_PER_SCRAPE=10
-TARGET_URL=https://floridaman.com/
-```
-
-### Frontend (`frontend/.env.local`)
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000
-```
+Do not use runtime `Base.metadata.create_all()` for schema management.
 
 ## API Endpoints
 
-### Game Endpoints
+### Game
 
-- `GET /api/game/headline` - Get random headline for guessing
-- `POST /api/game/guess` - Submit guess and get result
+- `GET /api/game/headline`
+- `POST /api/game/guess`
 
-### Admin Endpoints
+### Admin
 
-- `GET /api/admin/stats` - Get database statistics
-- `POST /api/admin/scrape` - Trigger headline scraping (coming soon)
-- `POST /api/admin/generate` - Trigger fake headline generation (coming soon)
+- `GET /api/admin/stats`
+- `POST /api/admin/headline` (manual insert)
+- `POST /api/admin/scrape` (placeholder)
+- `POST /api/admin/generate` (planned)
 
 ## Testing
 
-```text
-flo-flo/
-├── .github/
-│   └── workflows/
-│       ├── python-tests.ci.yml
-│       ├── frontend-tests.ci.yml
-│       └── integration-tests.manual.yml
-├── agents/
-│   ├── config.py
-│   ├── orchestrator.py
-│   ├── scraper_agent.py
-│   ├── generator_agent.py
-│   ├── tools/
-│   │   ├── scraper.py
-│   │   └── database.py
-│   └── tests/
-├── backend/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── config.py
-│   │   ├── db/
-│   │   │   ├── database.py
-│   │   │   └── repositories/
-│   │   ├── models/
-│   │   ├── routers/
-│   │   └── services/
-│   ├── migrations/              # Alembic
-│   │   ├── versions/
-│   │   └── env.py
-│   ├── alembic.ini
-│   ├── requirements.txt
-│   └── tests/
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   ├── components/
-│   │   ├── lib/
-│   │   └── types/
-│   ├── __tests__/
-│   └── package.json
-├── makefile
-└── README.md
+### Quick Local Commands
+
+```bash
+# backend offline
+cd backend
+python -m pytest -m "not external and not openai"
+
+# agents offline
+cd ../agents
+python -m pytest -m "not external and not openai"
+
+# focused scraper/generator tool tests
+python -m pytest -q tests/test_tools/test_tool_scraper.py
+python -m pytest -q tests/test_tools/test_tool_generator_quality.py
 ```
 
-### Frontend Tests
+### Root Integration Scaffolds
 
-- `components/Game.test.tsx`
-- `components/GameCard.test.tsx`
-- `lib/api.test.ts`
-
-### Backend Tests
-
-- `tests/__init__.py`
-- `tests/conftest.py`
-- `test_routers/test_game.py`
-- `test_routers/test_admin.py`
-- `test_services/test_headline_service.py`
-- `test_db/test_repositories.py`
-
-### Agent Tests
-
-- `tools/__init__.py`
-- `tools/conftest.py`
-- `test_scraper_agent.py`
-- `test_generator_agent.py`
-- `test_tools/test_scraper.py`
-- `test_tools/test_database.py`
-- `test_orchestrator_mock.py`
-
-### End-to-end Tests
-
-- `test_e2e_headline_flow.py`
-- `test_api_integration.py`
+- `tests/test_api_integration.py`
+- `tests/test_e2e_headline_flow.py`
 
 ## CI Workflows
 
-This repository uses three GitHub Actions workflows:
-
-1. Python Tests (Offline)
+### Python Tests (Offline)
 
 - File: `.github/workflows/python-tests.ci.yml`
-- Trigger: push/pull_request on backend or agents changes
-- Runs:
-    - backend tests with markers: not external and not openai
-    - agent tests with markers: not external and not openai
-- Coverage: uploads backend coverage.xml to Codecov
+- Trigger: backend/agents push or pull request
+- Runs offline-only backend and agents suites
 
-1. Frontend Tests
+### Frontend Tests
 
 - File: `.github/workflows/frontend-tests.ci.yml`
-- Trigger: push/pull_request on frontend changes
-- Runs:
-    - npm ci
-    - npm test -- --coverage
+- Trigger: frontend push or pull request
+- Runs npm test with coverage
 
-1. Integration Tests (Manual)
+### Integration Tests (Manual)
 
 - File: `.github/workflows/integration-tests.manual.yml`
-- Trigger:
-    - workflow_dispatch (manual)
-    - weekly schedule (Monday 06:00 UTC)
-- Inputs:
-    - suite: external | openai | all
-- Runs:
-    - external-marked tests across backend and agents
-    - openai-marked tests (only when OPENAI_API_KEY secret exists)
+- Trigger: manual + weekly schedule
+- Suites: `external`, `openai`, `all`
+- OpenAI path runs only when `OPENAI_API_KEY` is present
 
 ## Contributing
 
-This is a learning project. Feel free to fork and experiment.
+Learning project, open to iteration. Keep changes small, tested, and roadmap-aligned.
 
 ## License
 
-MIT (because Florida Man belongs to everyone)
+MIT
 
 ---
 
-**Status:** 🚧 Phase 3 - Agent Enhancement  
-**Last Updated:** March 26, 2026  
-**Next Milestone:** Fix agent tool execution and wire admin triggers
+**Status:** 🚧 Phase 3 (3.4 kickoff in progress)
+**Last Updated:** April 2, 2026
+**Next Milestone:** 3.4 OpenAI-native generation path + stronger output assertions

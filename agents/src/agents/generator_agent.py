@@ -5,8 +5,11 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from agents.config import config
 from agents.tools.database import get_db_stats, save_headlines_to_db
+from agents.tools.generator_quality import apply_quality_filters
 
 logger = logging.getLogger(__name__)
+
+MAX_GENERATION_COUNT = 50
 
 
 def create_generator_agent() -> AssistantAgent:
@@ -20,7 +23,15 @@ def create_generator_agent() -> AssistantAgent:
     def generate_fake_headlines(count: int = 5) -> str:
         """Generate fake Florida Man headlines - SYNC function."""
         try:
-            logger.info("🤖 Generating %s fake headlines...", count)
+            if not isinstance(count, int):
+                return "Invalid count: must be an integer"
+            if count < 1 or count > MAX_GENERATION_COUNT:
+                return (
+                    "Invalid count: must be between "
+                    f"1 and {MAX_GENERATION_COUNT}"
+                )
+
+            logger.info("Generating %s fake headlines...", count)
 
             # Hardcoded templates for now (will replace with LLM call)
             templates = [
@@ -55,6 +66,13 @@ def create_generator_agent() -> AssistantAgent:
             ]
 
             fake_headlines = templates[:count]
+            fake_headlines, quality = apply_quality_filters(fake_headlines)
+
+            if not fake_headlines:
+                return (
+                    "Generation produced no valid headlines after quality "
+                    "checks"
+                )
 
             formatted = [
                 {"text": headline, "is_real": False, "source_url": None}
@@ -64,13 +82,17 @@ def create_generator_agent() -> AssistantAgent:
             result = save_headlines_to_db(formatted)
 
             return (
-                f"✅ Generated {len(fake_headlines)} fake headlines\n\n"
-                f"{result}"
+                f"Generated {len(fake_headlines)} fake headlines\n\n"
+                f"{result}\n"
+                f"Quality: input={quality['input_count']}, "
+                f"kept={quality['kept_count']}, "
+                f"invalid={quality['invalid_dropped']}, "
+                f"duplicates={quality['duplicates_dropped']}"
             )
 
         except Exception as e:
             logger.error("Generator tool failed: %s", e, exc_info=True)
-            return f"❌ Generation failed: {str(e)}"
+            return f"Generation failed: {str(e)}"
 
     agent = AssistantAgent(
         name="generator_agent",
