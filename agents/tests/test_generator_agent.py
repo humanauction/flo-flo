@@ -1,6 +1,7 @@
 import os
 import re
 import pytest
+from types import SimpleNamespace
 
 
 def _has_real_openai_key() -> bool:
@@ -39,6 +40,22 @@ def _collect_text_chunks(event) -> list[str]:
                     chunks.append(value.strip())
 
     return chunks
+
+
+def test_extract_headlines_from_model_text_parses_numbered_lines():
+    from agents.generator_agent import _extract_headlines_from_model_text
+
+    text = """
+    1. Florida man builds raft from pizza boxes
+    2) Florida man wrestles mailbox over parking spot
+    - Florida man starts kayak traffic school
+    """
+    headlines = _extract_headlines_from_model_text(text, limit=3)
+    assert headlines == [
+        "Florida man builds raft from pizza boxes",
+        "Florida man wrestles mailbox over parking spot",
+        "Florida man starts kayak traffic school",
+    ]
 
 
 @pytest.mark.external
@@ -127,3 +144,32 @@ def test_sync_generation_path_does_not_require_openai_key(monkeypatch):
         save_fn=lambda payload: f"Saved {len(payload)} new headlines",
     )
     assert "Generated 1 fake headlines" in output
+
+
+@pytest.mark.asyncio
+async def test_openai_provider_parses_string_content():
+    from agents.generator_agent import _openai_provider
+
+    class FakeClient:
+        async def create(self, messages: object):
+            return SimpleNamespace(
+                content="1. Florida man invents swamp-powered treadmill\n2. Florida man opens alligator yoga studio"
+            )
+
+    headlines = await _openai_provider(FakeClient(), count=2)
+    assert headlines == [
+        "Florida man invents swamp-powered treadmill",
+        "Florida man opens alligator yoga studio",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_openai_provider_returns_empty_when_content_not_string():
+    from agents.generator_agent import _openai_provider
+
+    class FakeClient:
+        async def create(self, messages: object):
+            return SimpleNamespace(content=[])
+
+    headlines = await _openai_provider(FakeClient(), count=2)
+    assert headlines == []

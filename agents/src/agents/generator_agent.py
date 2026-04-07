@@ -1,8 +1,13 @@
+
+import asyncio
 import logging
+import re
+import threading
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Protocol
 
 from autogen_agentchat.agents import AssistantAgent
+from autogen_core.models import SystemMessage, UserMessage
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from agents.tools.generator_quality import (
@@ -15,7 +20,8 @@ logger = logging.getLogger(__name__)
 TEMPLATE_HEADLINES: list[str] = [
     "Florida man attempts to ride shopping cart down I-95 during rush hour",
     "Florida man arrested for teaching pet iguana to shoplift at 7-Eleven",
-    "Florida man builds treehouse in Walmart parking lot, claims squatter's rights",
+    "Florida man builds treehouse in Walmart parking lot, "
+    "claims squatter's rights",
     "Florida man caught using fishing rod to steal donuts from bakery window",
     "Florida man tries to pay bail with stack of expired Taco Bell coupons",
     "Florida man starts fire trying to cook eggs with a clothes iron",
@@ -26,6 +32,9 @@ TEMPLATE_HEADLINES: list[str] = [
 ]
 
 MAX_OPENAI_GENERATION_COUNT = 50  # for future OpenAI-primary mode
+_OPENAI_PROVIDER = "openai_primary"
+_TEMPLATE_PROVIDER = "template_fallback"
+_LINE_PREFIX_RE = re.compile(r"^\s*(?:[-*•]+|\d+[.)])\s*")
 
 
 def _template_provider(count: int) -> list[str]:
@@ -53,7 +62,6 @@ def _get_db_stats_tool() -> Callable[[], str]:
 
 
 def _build_model_client() -> OpenAIChatCompletionClient:
-    # Lazy import keeps module import safe for offline unit tests.
     from agents.config import config
 
     if not config.openai_api_key or config.openai_api_key == "your_key_here":
@@ -65,6 +73,82 @@ def _build_model_client() -> OpenAIChatCompletionClient:
         model=config.openai_model,
         api_key=config.openai_api_key,
     )
+
+
+def _extract_headlines_from_model_text(text: str, limit: int) -> list[str]:
+    lines: list[str] = []
+    for raw in text.splitlines():
+        clean = _LINE_PREFIX_RE.sub("", raw).strip().strip('"').strip("'")
+        if clean:
+            lines.append(clean)
+
+    if not lines and text.strip():
+        lines = [text.strip().strip('"').strip("'")]
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for item in lines:
+        key = item.lower()
+        if key not in seen:
+            seen.add(key)
+            deduped.append(item)
+
+    return deduped[:limit]
+
+
+class _ModelClientLike(Protocol):
+    async def create(
+            self,
+            messages: list[SystemMessage | UserMessage],
+    ) -> Any: ...
+
+
+async def _openai_provider(
+    model_client: _ModelClientLike,
+    count: int,
+) -> list[str]:
+    messages = [
+        SystemMessage(
+            content=(
+                "You generate fictional but plausible Florida Man headlines. "
+                "Each headline must include the phrase 'Florida man'. "
+                "Return only headlines, one per line, no extra commentary."
+            )
+        ),
+        UserMessage(
+            source="generator_agent",
+            content=f"Generate {count} unique fake headlines.",
+        ),
+    ]
+    result = await model_client.create(messages=messages)
+    content = getattr(result, "content", None)
+    if not isinstance(content, str):
+        return []
+    return _extract_headlines_from_model_text(content, limit=count)
+
+
+def _run_coro_blocking(coro):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+
+    box: dict[str, Any] = {}
+    err: dict[str, BaseException] = {}
+
+    def runner() -> None:
+        try:
+            box["value"] = asyncio.run(coro)
+        except BaseException as exc:
+            err["error"] = exc
+
+    thread = threading.Thread(target=runner, daemon=True)
+    thread.start()
+    thread.join()
+
+    if "error" in err:
+        raise err["error"]
+    return box.get("value")
 
 
 def generate_fake_headlines_sync(
@@ -121,17 +205,32 @@ def create_generator_agent() -> AssistantAgent:
 
     def generate_fake_headlines(count: int = 5) -> str:
         try:
-            logger.info("Generating %s fake headlines...", count)
+            validation_error = _validate_count(count, MAX_OPENAI_GENERATION_COUNT)
+            if validation_error:
+                return validation_error
 
-            # Template mode: truthful max equals template capacity.
-            return generate_fake_headlines_sync(count=count)
+            provider = _OPENAI_PROVIDER
+            raw_headlines: list[str] = []
 
-            # Future OpenAI-primary mode:
-            # return generate_fake_headlines_sync(
-            #     count=count,
-            #     headline_provider=openai_provider,
-            #     max_count=MAX_OPENAI_GENERATION_COUNT,
-            # )
+            try:
+                raw_headlines = _run_coro_blocking(
+                    _openai_provider(model_client=model_client, count=count)
+                ) or []
+            except Exception as exc:
+                logger.warning("OpenAI generation failed, falling back to templates: %s", exc)
+                provider = _TEMPLATE_PROVIDER
+
+            if not raw_headlines:
+                raw_headlines = _template_provider(count)
+                provider = _TEMPLATE_PROVIDER
+
+            summary = generate_fake_headlines_sync(
+                count=count,
+                headline_provider=lambda _requested: raw_headlines,
+                max_count=MAX_OPENAI_GENERATION_COUNT,
+            )
+            return f"{summary}\nProvider: {provider}"
+
         except Exception as e:
             logger.error("Generator tool failed: %s", e, exc_info=True)
             return f"Generation failed: {str(e)}"
