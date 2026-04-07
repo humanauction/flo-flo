@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import re
@@ -35,6 +34,7 @@ MAX_OPENAI_GENERATION_COUNT = 50  # for future OpenAI-primary mode
 _OPENAI_PROVIDER = "openai_primary"
 _TEMPLATE_PROVIDER = "template_fallback"
 _LINE_PREFIX_RE = re.compile(r"^\s*(?:[-*•]+|\d+[.)])\s*")
+OPENAI_PROVIDER_TIMEOUT_SECONDS = 12.0
 
 
 def _template_provider(count: int) -> list[str]:
@@ -62,17 +62,33 @@ def _get_db_stats_tool() -> Callable[[], str]:
 
 
 def _build_model_client() -> OpenAIChatCompletionClient:
-    from agents.config import config
+    try:
+        from agents.config import config
+    except Exception as exc:
+        logger.error("Failed to import config", exc_info=True)
+        raise RuntimeError(
+            "Generator configuration error: could not load agent config."
+        ) from exc
 
-    if not config.openai_api_key or config.openai_api_key == "your_key_here":
-        raise ValueError(
-            "OPENAI_API_KEY is required to create generator agent for OpenAI mode"
+    api_key = getattr(config, "openai_api_key", None)
+    model = getattr(config, "openai_model", None)
+
+    if not isinstance(api_key, str) or not api_key.strip() or api_key == "your_key_here":
+        raise RuntimeError(
+            "Generator configuration error: OPENAI_API_KEY missing or placeholder."
+        )
+    if not isinstance(model, str) or not model.strip():
+        raise RuntimeError(
+            "Generator configuration error: OPENAI_MODEL missing."
         )
 
-    return OpenAIChatCompletionClient(
-        model=config.openai_model,
-        api_key=config.openai_api_key,
-    )
+    try:
+        return OpenAIChatCompletionClient(model=model, api_key=api_key)
+    except Exception as exc:
+        logger.error("Failed to initialize OpenAI client", exc_info=True)
+        raise RuntimeError(
+            "Generator configuration error: failed to initialize OpenAI client."
+        ) from exc
 
 
 def _extract_headlines_from_model_text(text: str, limit: int) -> list[str]:
@@ -127,7 +143,14 @@ async def _openai_provider(
     return _extract_headlines_from_model_text(content, limit=count)
 
 
-def _run_coro_blocking(coro):
+def _run_coro_blocking(
+    coro,
+    *,
+    timeout_seconds: float = OPENAI_PROVIDER_TIMEOUT_SECONDS,
+):
+    if timeout_seconds <= 0:
+        raise ValueError("Timeout must be greater than 0")
+
     try:
         asyncio.get_running_loop()
     except RuntimeError:
@@ -144,7 +167,12 @@ def _run_coro_blocking(coro):
 
     thread = threading.Thread(target=runner, daemon=True)
     thread.start()
-    thread.join()
+    thread.join(timeout=timeout_seconds)
+
+    if thread.is_alive():
+        raise TimeoutError(
+            f"Operation timed out after {timeout_seconds:.1f}s"
+        )
 
     if "error" in err:
         raise err["error"]
@@ -159,7 +187,9 @@ def generate_fake_headlines_sync(
     quality_fn: Callable[[list[str]], tuple[list[str], GeneratorQualityStats]] = apply_quality_filters,
     save_fn: Callable[[list[dict[str, Any]]], str] = _default_save_headlines_to_db,
 ) -> str:
-    effective_max = max_count if max_count is not None else len(TEMPLATE_HEADLINES)
+    effective_max = (
+        max_count if max_count is not None else len(TEMPLATE_HEADLINES)
+    )
 
     validation_error = _validate_count(count, effective_max)
     if validation_error:
@@ -167,13 +197,36 @@ def generate_fake_headlines_sync(
 
     requested = count
     raw_headlines = headline_provider(requested)[:requested]
+    provider_input_count = len(raw_headlines)
     filtered_headlines, quality = quality_fn(raw_headlines)
 
+    provider_shortfall = max(0, requested - provider_input_count)
+    quality_dropped = max(
+        0, provider_input_count - len(filtered_headlines)
+    )
+
+    notices: list[str] = []
+    if provider_shortfall > 0:
+        notices.append(
+            "Notice: provider shortfall "
+            f"{provider_shortfall} "
+            f"(requested={requested}, provider_input={provider_input_count})"
+        )
+    if quality_dropped > 0:
+        notices.append(
+            f"Notice: requested={requested}, "
+            f"generated={len(filtered_headlines)} "
+            f"(quality dropped {quality_dropped})"
+        )
+
     if not filtered_headlines:
-        return (
+        msg = (
             "Generation produced no valid headlines after quality checks "
             f"(requested={requested}, input={quality['input_count']}, kept=0)"
         )
+        if notices:
+            msg += "\n" + "\n".join(notices)
+        return msg
 
     payload = [
         {"text": headline, "is_real": False, "source_url": None}
@@ -182,7 +235,8 @@ def generate_fake_headlines_sync(
     save_result = save_fn(payload)
 
     summary = (
-        f"Generated {len(filtered_headlines)} fake headlines (requested {requested})\n\n"
+        f"Generated {len(filtered_headlines)} fake headlines "
+        f"(requested {requested})\n\n"
         f"{save_result}\n"
         f"Quality: input={quality['input_count']}, "
         f"kept={quality['kept_count']}, "
@@ -190,11 +244,8 @@ def generate_fake_headlines_sync(
         f"duplicates={quality['duplicates_dropped']}"
     )
 
-    if len(filtered_headlines) != requested:
-        summary += (
-            f"\nNotice: requested={requested}, generated={len(filtered_headlines)} "
-            f"(quality dropped {requested - len(filtered_headlines)})"
-        )
+    if notices:
+        summary += "\n" + "\n".join(notices)
 
     return summary
 
@@ -216,8 +267,14 @@ def create_generator_agent() -> AssistantAgent:
                 raw_headlines = _run_coro_blocking(
                     _openai_provider(model_client=model_client, count=count)
                 ) or []
+            except TimeoutError as exc:
+                logger.warning("%s. Falling back to templates.", exc)
+                provider = _TEMPLATE_PROVIDER
             except Exception as exc:
-                logger.warning("OpenAI generation failed, falling back to templates: %s", exc)
+                logger.warning(
+                    "OpenAI generation failed, falling back to templates: %s",
+                    exc,
+                )
                 provider = _TEMPLATE_PROVIDER
 
             if not raw_headlines:

@@ -173,3 +173,31 @@ async def test_openai_provider_returns_empty_when_content_not_string():
 
     headlines = await _openai_provider(FakeClient(), count=2)
     assert headlines == []
+
+
+def test_generate_fake_headlines_reports_provider_shortfall():
+    from agents.generator_agent import (
+        MAX_OPENAI_GENERATION_COUNT,
+        generate_fake_headlines_sync,
+    )
+
+    supplied = [
+        (
+            "Florida man causes unusual incident number "
+            f"{i} at county fair parking lot"
+        )
+        for i in range(10)
+    ]
+
+    output = generate_fake_headlines_sync(
+        count=12,
+        max_count=MAX_OPENAI_GENERATION_COUNT,
+        headline_provider=lambda _count: supplied,
+        save_fn=lambda payload: f"Saved {len(payload)} new headlines",
+    )
+
+    assert "Generated 10 fake headlines (requested 12)" in output
+    assert (
+        "Notice: provider shortfall 2 (requested=12, provider_input=10)"
+        in output
+    )
