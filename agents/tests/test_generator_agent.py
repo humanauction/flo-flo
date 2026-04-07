@@ -118,7 +118,8 @@ def test_generate_fake_headlines_quality_summary_format_contract():
 
     duplicate_templates = [
         "Florida man does one believable and weird thing for local TV cameras",
-        "  florida man does one believable and weird thing for local TV cameras  ",
+        "  florida man does one believable and weird thing "
+        "for local TV cameras  ",
     ]
 
     output = generate_fake_headlines_sync(
@@ -153,7 +154,8 @@ async def test_openai_provider_parses_string_content():
     class FakeClient:
         async def create(self, messages: object):
             return SimpleNamespace(
-                content="1. Florida man invents swamp-powered treadmill\n2. Florida man opens alligator yoga studio"
+                content="1. Florida man invents swamp-powered treadmill\n "
+                "2. Florida man opens alligator yoga studio",
             )
 
     headlines = await _openai_provider(FakeClient(), count=2)
