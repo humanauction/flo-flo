@@ -1,7 +1,7 @@
 import logging
 import time
-from typing import Callable, Dict, List, TypedDict, cast
-
+from typing import Dict, List, TypedDict, cast
+from collections.abc import Callable
 import requests
 from bs4 import BeautifulSoup
 
