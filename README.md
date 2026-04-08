@@ -1,10 +1,10 @@
 # Florida Man or Fiction
 
-A true/false game where players guess whether a headline is a real Florida Man story or AI-generated fiction.
-
 [![Integration Tests (Manual)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/integration-tests.manual.yml)
 [![Python Tests (Offline)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/python-tests.ci.yml)
 [![Frontend Tests](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml/badge.svg)](https://github.com/humanauction/flo-flo/actions/workflows/frontend-tests.ci.yml)
+
+A true/false game where players guess whether a headline is a real Florida Man story or AI-generated fiction.
 
 ## Introduction
 
@@ -378,6 +378,6 @@ MIT
 
 ---
 
-**Status:** 🚧 Phase 3 (3.4 kickoff in progress)
-**Last Updated:** April 2, 2026
+**Status:** 🚧 Phase 3 (3.5 in progress)
+**Last Updated:** April 8, 2026
 **Next Milestone:** 3.4 OpenAI-native generation path + stronger output assertions
