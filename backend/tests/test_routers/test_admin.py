@@ -121,12 +121,20 @@ def test_admin_generate_job_failure_is_deterministic(client, monkeypatch):
 
 def test_admin_job_count_validation(client):
     bad_zero = client.post("/api/admin/scrape", json={"count": 0})
-    assert bad_zero.status_code == 400
-    assert "between 1 and" in bad_zero.json()["detail"]
+    assert bad_zero.status_code == 422
+    zero_detail = bad_zero.json()["detail"]
+    assert isinstance(zero_detail, list) and zero_detail
+    assert zero_detail[0]["loc"][-1] == "count"
+    assert zero_detail[0]["type"] == "greater_than_equal"
+    assert "greater than or equal to 1" in zero_detail[0]["msg"]
 
     bad_bool = client.post("/api/admin/generate", json={"count": True})
-    assert bad_bool.status_code == 400
-    assert "must be an integer" in bad_bool.json()["detail"]
+    assert bad_bool.status_code == 422
+    bool_detail = bad_bool.json()["detail"]
+    assert isinstance(bool_detail, list) and bool_detail
+    assert bool_detail[0]["loc"][-1] == "count"
+    assert bool_detail[0]["type"] == "int_type"
+    assert "valid integer" in bool_detail[0]["msg"]
 
 
 def test_admin_job_status_not_found(client):

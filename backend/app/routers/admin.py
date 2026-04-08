@@ -5,7 +5,7 @@ from typing import Any, Optional
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, StrictInt
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
@@ -32,7 +32,11 @@ class AddHeadlineRequest(BaseModel):
 
 
 class TriggerJobRequest(BaseModel):
-    count: int = DEFAULT_ADMIN_JOB_COUNT
+    count: StrictInt = Field(
+        default=DEFAULT_ADMIN_JOB_COUNT,
+        ge=1,
+        le=MAX_ADMIN_JOB_COUNT,
+    )
 
 
 def _utc_now_iso() -> str:
