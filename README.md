@@ -30,7 +30,7 @@ Core loop:
 
 ### Frontend
 
-- Next.js 15 (App Router, TypeScript)
+- Next.js 16 (App Router, TypeScript)
 - Tailwind CSS
 - Jest
 
@@ -98,13 +98,13 @@ flo-flo/
 │ ├── pytest.ini
 │ ├── src/
 │ │ └── agents/
-│ │ ├── init.py
+│ │ ├── __init__.py
 │ │ ├── config.py
 │ │ ├── scraper_agent.py
 │ │ ├── generator_agent.py
 │ │ ├── orchestrator.py
 │ │ └── tools/
-│ │ ├── init.py
+│ │ ├── __init__.py
 │ │ ├── scraper.py
 │ │ ├── database.py
 │ │ └── generator_quality.py
@@ -188,8 +188,8 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 - [x] Debug why agents terminate without running tools
 - [x] Add baseline tool-level tests for scraper/database paths
 - [x] Verify database writes from agent tools (offline)
-- [ ] Add stronger tool schemas for AutoGen
-- [ ] Add richer generator assertions for real OpenAI path
+- [x] Add stronger tool schemas for AutoGen
+- [x] Add richer generator assertions for real OpenAI path
 
 #### 3.2 Testing Strategy (Implemented)
 
@@ -198,23 +198,27 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 - [x] OpenAI integration tests marked `@pytest.mark.openai`
 - [x] Manual/scheduled integration workflow with secret guard
 
-#### 3.3 Improve Scraping
+#### 3.3 Improve Scraping (In Progress)
 
 - [ ] Add additional real news source adapters beyond current conservative setup
 - [x] Retry/backoff and timeout strategy
 - [x] Stronger validation and dedupe metrics (`scrape_with_metrics`)
 
-#### 3.4 Enhance Generation (In Progress)
+#### 3.4 Enhance Generation (Core Implemented)
 
-- [ ] Connect generation path fully to OpenAI outputs (not template-only)
+- [x] Connect generation path to OpenAI outputs (with deterministic fallback)
 - [x] Baseline quality checks (length, phrase plausibility, duplicate filtering)
-- [ ] Optional RAG context from real headlines
 
 #### 3.5 Admin Interface (Implemented)
 
 - [x] Add endpoints to trigger scrape/generate jobs from API
 - [x] Add frontend admin page to run jobs and show status/logs
 - [x] Add admin job status endpoint and polling contract
+
+#### 3.6 Context Augmentation (Planned After 3.3, Before Phase 4)
+
+- [ ] RAG context from real headlines
+- [ ] RAG grounding metadata for generated headline provenance
 
 ### Phase 4: Polish & Production
 
@@ -265,7 +269,7 @@ python -m pip install pytest pytest-asyncio pytest-cov
 Create `backend/.env`:
 
 ```env
-DATABASE_URL=sqlite:///./headlines.db
+DATABASE_URL=sqlite:///./floridaman.db
 OPENAI_API_KEY=your_key_here
 ```
 
@@ -388,6 +392,6 @@ MIT
 
 ---
 
-**Status:** 🚧 Phase 3 (3.4 in progress, 3.5 baseline implemented)
-**Last Updated:** April 8, 2026
-**Next Milestone:** 3.4 OpenAI-native generation completion and stronger real-path assertions (April 2026)
+**Status:** 🚧 Phase 3 (3.3 source expansion in progress; 3.4 and 3.5 baseline implemented)
+**Last Updated:** April 9, 2026
+**Next Milestone:** 3.3 additional source adapters, then 3.6 Optional RAG context (April 2026)

@@ -141,3 +141,35 @@ def test_admin_job_status_not_found(client):
     res = client.get("/api/admin/jobs/not-a-real-job-id")
     assert res.status_code == 404
     assert res.json()["detail"] == "Job not found"
+
+
+def test_admin_normalize_stream_chunk_strips_blank_lines():
+    raw = (
+        "  Generated 1 fake headlines (requested 1) "
+        "\r\n\r\nSaved 1 new headlines  "
+    )
+    assert admin_router._normalize_stream_chunk(raw) == (
+        "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines"
+    )
+
+
+def test_admin_dedupe_chunks_filters_prompt_and_duplicates():
+    task = (
+        "You must call your generate_fake_headlines tool with count=1. "
+        "Return only the tool result summary."
+    )
+    chunks = [
+        task,
+        "Generated 1 fake headlines (requested 1)\n\nSaved 1 new headlines",
+        " generated 1 fake headlines (requested 1)\n"
+        "saved 1 new headlines ",
+        "Provider: openai_primary",
+        "provider: openai_primary",
+    ]
+
+    deduped = admin_router._dedupe_chunks(chunks, blocked_texts={task})
+
+    assert deduped == [
+        "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines",
+        "Provider: openai_primary",
+    ]

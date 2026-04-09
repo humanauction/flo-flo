@@ -167,6 +167,43 @@ def _collect_text_chunks(event: Any) -> list[str]:
     return chunks
 
 
+def _normalize_stream_chunk(value: str) -> str:
+    # Normalize streamed text so equivalent content compares deterministically.
+    lines = [
+        line.strip()
+        for line in value.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    ]
+    return "\n".join(line for line in lines if line).strip()
+
+
+def _dedupe_chunks(
+    chunks: list[str],
+    *,
+    blocked_texts: set[str] | None = None,
+) -> list[str]:
+    blocked_keys: set[str] = set()
+    for text in blocked_texts or set():
+        normalized = _normalize_stream_chunk(text)
+        if normalized:
+            blocked_keys.add(normalized.lower())
+
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for chunk in chunks:
+        normalized = _normalize_stream_chunk(chunk)
+        if not normalized:
+            continue
+
+        key = normalized.lower()
+        if key in blocked_keys or key in seen:
+            continue
+
+        seen.add(key)
+        deduped.append(normalized)
+
+    return deduped
+
+
 async def _run_generate_job_async(requested_count: int) -> str:
     from agents.generator_agent import create_generator_agent
 
@@ -180,7 +217,8 @@ async def _run_generate_job_async(requested_count: int) -> str:
     async for event in agent.run_stream(task=task):
         chunks.extend(_collect_text_chunks(event))
 
-    result_text = "\n".join(chunks).strip()
+    deduped_chunks = _dedupe_chunks(chunks, blocked_texts={task})
+    result_text = "\n".join(deduped_chunks).strip()
     if not result_text:
         raise RuntimeError("Generator agent returned empty output")
     return result_text
