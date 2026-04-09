@@ -18,7 +18,10 @@ def _validate_max_headlines(value: object) -> str | None:
     if not isinstance(value, int):
         return "Invalid max_headlines: must be an integer"
     if value < 1 or value > MAX_SCRAPE_COUNT:
-        return f"Invalid max_headlines: must be between 1 and {MAX_SCRAPE_COUNT}"
+        return (
+            "Invalid max_headlines: "
+            f"must be between 1 and {MAX_SCRAPE_COUNT}"
+        )
     return None
 
 
