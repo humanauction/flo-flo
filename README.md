@@ -21,10 +21,10 @@ Core loop:
 
 - Phase 1 and Phase 2 are complete.
 - Phase 3.3 has conservative source adapter/metrics support in scraper tooling.
-- Phase 3.4 In Progress.
-- CI split is stable:
-  - Offline tests run automatically.
-  - External/OpenAI paths are isolated to manual/scheduled integration workflow.
+- Phase 3.4 In Progress with OpenAI-native generation hardening.
+- CI split is stable.
+- Offline tests run automatically.
+- External/OpenAI paths are isolated to manual/scheduled integration workflow.
 
 ## Tech Stack
 
@@ -60,74 +60,82 @@ Notes:
 ```text
 flo-flo/
 ├── .github/
-│   └── workflows/
-│       ├── python-tests.ci.yml
-│       ├── frontend-tests.ci.yml
-│       └── integration-tests.manual.yml
+│ └── workflows/
+│ ├── python-tests.ci.yml
+│ ├── frontend-tests.ci.yml
+│ └── integration-tests.manual.yml
 ├── backend/
-│   ├── pyproject.toml
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── config.py
-│   │   ├── db/
-│   │   │   ├── database.py
-│   │   │   └── repositories/
-│   │   │       ├── headline_repository.py
-│   │   │       └── token_usage_repository.py
-│   │   ├── models/
-│   │   │   ├── headline.py
-│   │   │   └── token_usage.py
-│   │   ├── routers/
-│   │   │   ├── game.py
-│   │   │   └── admin.py
-│   │   └── services/
-│   │       └── headline_service.py
-│   ├── migrations/
-│   │   ├── env.py
-│   │   └── versions/
-│   ├── tests/
-│   │   ├── conftest.py
-│   │   ├── test_db/
-│   │   ├── test_routers/
-│   │   └── test_services/
-│   ├── alembic.ini
-│   ├── requirements.txt
-│   └── seed_data.py
+│ ├── pyproject.toml
+│ ├── app/
+│ │ ├── main.py
+│ │ ├── config.py
+│ │ ├── db/
+│ │ │ ├── database.py
+│ │ │ └── repositories/
+│ │ │ ├── headline_repository.py
+│ │ │ └── token_usage_repository.py
+│ │ ├── models/
+│ │ │ ├── headline.py
+│ │ │ └── token_usage.py
+│ │ ├── routers/
+│ │ │ ├── game.py
+│ │ │ └── admin.py
+│ │ └── services/
+│ │ └── headline_service.py
+│ ├── migrations/
+│ │ ├── env.py
+│ │ └── versions/
+│ ├── tests/
+│ │ ├── conftest.py
+│ │ ├── test_db/
+│ │ ├── test_routers/
+│ │ └── test_services/
+│ ├── alembic.ini
+│ ├── requirements.txt
+│ └── seed_data.py
 ├── agents/
-│   ├── pyproject.toml
-│   ├── pytest.ini
-│   ├── src/
-│   │   └── agents/
-│   │       ├── __init__.py
-│   │       ├── config.py
-│   │       ├── scraper_agent.py
-│   │       ├── generator_agent.py
-│   │       ├── orchestrator.py
-│   │       └── tools/
-│   │           ├── __init__.py
-│   │           ├── scraper.py
-│   │           ├── database.py
-│   │           └── generator_quality.py
-│   └── tests/
-│       ├── test_scraper_agent.py
-│       ├── test_generator_agent.py
-│       └── test_tools/
-│           ├── test_tool_scraper.py
-│           ├── test_tool_database.py
-│           └── test_tool_generator_quality.py
+│ ├── pyproject.toml
+│ ├── pytest.ini
+│ ├── src/
+│ │ └── agents/
+│ │ ├── init.py
+│ │ ├── config.py
+│ │ ├── scraper_agent.py
+│ │ ├── generator_agent.py
+│ │ ├── orchestrator.py
+│ │ └── tools/
+│ │ ├── init.py
+│ │ ├── scraper.py
+│ │ ├── database.py
+│ │ └── generator_quality.py
+│ ├── tools/ # compatibility namespace retained
+│ └── tests/
+│ ├── test_scraper_agent.py
+│ ├── test_generator_agent.py
+│ └── test_tools/
+│ ├── test_tool_scraper.py
+│ ├── test_tool_database.py
+│ └── test_tool_generator_quality.py
 ├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   ├── components/
-│   │   ├── lib/
-│   │   └── types/
-│   ├── __tests__/
-│   │   ├── components/
-│   │   └── lib/
-│   └── package.json
+│ ├── src/
+│ │ ├── app/
+│ │ │ ├── page.tsx
+│ │ │ └── admin/
+│ │ │ └── page.tsx
+│ │ ├── components/
+│ │ ├── lib/
+│ │ │ └── api.ts
+│ │ └── types/
+│ │ └── index.ts
+│ ├── tests/
+│ │ ├── components/
+│ │ └── lib/
+│ │ └── api.test.ts
+│ └── package.json
 ├── tests/
-│   ├── test_api_integration.py
-│   └── test_e2e_headline_flow.py
+│ ├── test_api_integration.py
+│ └── test_e2e_headline_flow.py
+├── env.py
 ├── makefile
 ├── .gitignore
 └── README.md
@@ -196,20 +204,21 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 - [x] Retry/backoff and timeout strategy
 - [x] Stronger validation and dedupe metrics (`scrape_with_metrics`)
 
-#### 3.4 Enhance Generation (Kickoff Started)
+#### 3.4 Enhance Generation (In Progress)
 
 - [ ] Connect generation path fully to OpenAI outputs (not template-only)
 - [x] Baseline quality checks (length, phrase plausibility, duplicate filtering)
 - [ ] Optional RAG context from real headlines
 
-#### 3.5 Admin Interface
+#### 3.5 Admin Interface (Implemented)
 
-- [ ] Add endpoints to trigger scrape/generate jobs from API
-- [ ] Add frontend admin page to run jobs and show status/logs
+- [x] Add endpoints to trigger scrape/generate jobs from API
+- [x] Add frontend admin page to run jobs and show status/logs
+- [x] Add admin job status endpoint and polling contract
 
 ### Phase 4: Polish & Production
 
-- [ ] Accounts/stats (optional)
+- [ ] Accounts/Stats
 - [ ] Leaderboard
 - [ ] Social sharing
 - [ ] UX loading/error polish
@@ -321,8 +330,9 @@ Do not use runtime `Base.metadata.create_all()` for schema management.
 
 - `GET /api/admin/stats`
 - `POST /api/admin/headline` (manual insert)
-- `POST /api/admin/scrape` (placeholder)
-- `POST /api/admin/generate` (planned)
+- `POST /api/admin/scrape` (queues scrape job, optional count 1-50, default 10)
+- `POST /api/admin/generate` (queues generate job, optional count 1-50, default 10)
+- `GET /api/admin/jobs/{job_id}` (returns queued, running, completed, or failed state with summary or error)
 
 ## Testing
 
@@ -378,6 +388,6 @@ MIT
 
 ---
 
-**Status:** 🚧 Phase 3 (3.5 in progress)
+**Status:** 🚧 Phase 3 (3.4 in progress, 3.5 baseline implemented)
 **Last Updated:** April 8, 2026
-**Next Milestone:** 3.4 OpenAI-native generation path + stronger output assertions
+**Next Milestone:** 3.4 OpenAI-native generation completion and stronger real-path assertions (April 2026)

@@ -122,7 +122,8 @@ def _execute_scrape_job(requested_count: int) -> str:
             {
                 "text": text.strip(),
                 "is_real": True,
-                "source_url": source_url if isinstance(source_url, str) else None,
+                "source_url": source_url if isinstance(source_url, str)
+                else None,
             }
         )
 
@@ -245,7 +246,10 @@ async def get_stats(db: Session = Depends(get_db)):
 
 
 @router.post("/headline")
-async def add_headline(request: AddHeadlineRequest, db: Session = Depends(get_db)):
+async def add_headline(
+    request: AddHeadlineRequest,
+    db: Session = Depends(get_db)
+):
     service = HeadlineService(db)
 
     try:
