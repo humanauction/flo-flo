@@ -1,13 +1,31 @@
 import logging
+from typing import Annotated
+from pydantic import Field, StrictInt
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from agents.config import config
 from agents.tools.database import get_db_stats, save_headlines_to_db
-from agents.tools.scraper import HeadlineScraper
+from agents.tools.scraper import HeadlineScraper, MAX_SCRAPE_COUNT
 
 logger = logging.getLogger(__name__)
+
+
+def _validate_max_headlines(value: object) -> str | None:
+
+    if isinstance(value, bool):
+        return "Invalid max_headlines: bool is not allowed; provide an integer"
+
+    if not isinstance(value, int):
+        return "Invalid max_headlines: must be an integer"
+
+    if value < 1 or value > MAX_SCRAPE_COUNT:
+        return (
+            "Invalid max_headlines: must be between 1 and "
+            f"{MAX_SCRAPE_COUNT}"
+        )
+    return None
 
 
 def create_scraper_agent() -> AssistantAgent:
@@ -18,10 +36,21 @@ def create_scraper_agent() -> AssistantAgent:
         api_key=config.openai_api_key,
     )
 
-    def scrape_and_save(max_headlines: int = 10) -> str:
+    def scrape_and_save(max_headlines: Annotated[
+        StrictInt,
+        Field(
+            ge=1,
+            le=MAX_SCRAPE_COUNT,
+            description=(
+                "Maximum number of real headlines to scrape and save. "
+                f"Must be an integer between 1 and {MAX_SCRAPE_COUNT}."
+            ),
+        ),
+    ] = 10,
+    ) -> str:
         """Scrape headlines and save to database for AutoGen."""
         try:
-            logger.info("🕷️ Scraping up to %s headlines...", max_headlines)
+            logger.info("Scraping up to %s headlines...", max_headlines)
 
             scraper = HeadlineScraper()
             headlines = scraper.scrape()[:max_headlines]

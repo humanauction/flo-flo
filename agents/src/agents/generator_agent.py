@@ -3,7 +3,8 @@ import logging
 import re
 import threading
 from collections.abc import Callable
-from typing import Any, Protocol
+from typing import Annotated, Any, Protocol
+from pydantic import Field, StrictInt
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import SystemMessage, UserMessage
@@ -75,7 +76,8 @@ def _build_model_client() -> OpenAIChatCompletionClient:
 
     if not isinstance(api_key, str) or not api_key.strip() or api_key == "your_key_here":
         raise RuntimeError(
-            "Generator configuration error: OPENAI_API_KEY missing or placeholder."
+            "Generator configuration error: "
+            "OPENAI_API_KEY missing or placeholder."
         )
     if not isinstance(model, str) or not model.strip():
         raise RuntimeError(
@@ -87,7 +89,8 @@ def _build_model_client() -> OpenAIChatCompletionClient:
     except Exception as exc:
         logger.error("Failed to initialize OpenAI client", exc_info=True)
         raise RuntimeError(
-            "Generator configuration error: failed to initialize OpenAI client."
+            "Generator configuration error: "
+            "failed to initialize OpenAI client."
         ) from exc
 
 
@@ -184,8 +187,14 @@ def generate_fake_headlines_sync(
     *,
     headline_provider: Callable[[int], list[str]] = _template_provider,
     max_count: int | None = None,
-    quality_fn: Callable[[list[str]], tuple[list[str], GeneratorQualityStats]] = apply_quality_filters,
-    save_fn: Callable[[list[dict[str, Any]]], str] = _default_save_headlines_to_db,
+    quality_fn:
+    Callable[
+        [list[str]], tuple[list[str], GeneratorQualityStats]
+    ] = apply_quality_filters,
+    save_fn:
+    Callable[
+        [list[dict[str, Any]]], str
+    ] = _default_save_headlines_to_db,
 ) -> str:
     effective_max = (
         max_count if max_count is not None else len(TEMPLATE_HEADLINES)
@@ -254,9 +263,23 @@ def create_generator_agent() -> AssistantAgent:
     model_client = _build_model_client()
     db_stats_tool = _get_db_stats_tool()
 
-    def generate_fake_headlines(count: int = 5) -> str:
+    def generate_fake_headlines(
+        count: Annotated[
+            StrictInt,
+            Field(
+                ge=1,
+                le=MAX_OPENAI_GENERATION_COUNT,
+                description="Number of fake headlines to generate. "
+                "Must be an integer "
+                f"between 1 and {MAX_OPENAI_GENERATION_COUNT}."
+            ),
+        ] = 5,
+    ) -> str:
         try:
-            validation_error = _validate_count(count, MAX_OPENAI_GENERATION_COUNT)
+            validation_error = _validate_count(
+                count,
+                MAX_OPENAI_GENERATION_COUNT
+            )
             if validation_error:
                 return validation_error
 
