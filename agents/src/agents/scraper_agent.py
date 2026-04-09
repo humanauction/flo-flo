@@ -1,6 +1,5 @@
 import logging
 from typing import Annotated
-from pydantic import Field, StrictInt
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -13,18 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_max_headlines(value: object) -> str | None:
-
+    """AutoGen agent tool function."""
     if isinstance(value, bool):
         return "Invalid max_headlines: bool is not allowed; provide an integer"
-
     if not isinstance(value, int):
         return "Invalid max_headlines: must be an integer"
-
     if value < 1 or value > MAX_SCRAPE_COUNT:
-        return (
-            "Invalid max_headlines: must be between 1 and "
-            f"{MAX_SCRAPE_COUNT}"
-        )
+        return f"Invalid max_headlines: must be between 1 and {MAX_SCRAPE_COUNT}"
     return None
 
 
@@ -36,19 +30,17 @@ def create_scraper_agent() -> AssistantAgent:
         api_key=config.openai_api_key,
     )
 
-    def scrape_and_save(max_headlines: Annotated[
-        StrictInt,
-        Field(
-            ge=1,
-            le=MAX_SCRAPE_COUNT,
-            description=(
-                "Maximum number of real headlines to scrape and save. "
-                f"Must be an integer between 1 and {MAX_SCRAPE_COUNT}."
-            ),
-        ),
-    ] = 10,
+    def scrape_and_save(
+        max_headlines: Annotated[
+            int,
+            "Maximum number of real headlines to scrape and save. "
+            f"Must be an integer between 1 and {MAX_SCRAPE_COUNT}.",
+        ] = 10,
     ) -> str:
         """Scrape headlines and save to database for AutoGen."""
+        validation_error = _validate_max_headlines(max_headlines)
+        if validation_error:
+            return validation_error
         try:
             logger.info("Scraping up to %s headlines...", max_headlines)
 

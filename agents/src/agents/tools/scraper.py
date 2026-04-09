@@ -1,7 +1,6 @@
 import logging
 import time
 from typing import Annotated, Dict, List, TypedDict, cast
-from pydantic import Field, StrictInt
 from collections.abc import Callable
 import requests
 from bs4 import BeautifulSoup
@@ -349,28 +348,15 @@ def _validate_max_count(max_count: object) -> str | None:
 
 
 def scrape_headlines(
-        max_count: Annotated[
-        StrictInt,
-        Field(
-        ge=1,
-        le=MAX_SCRAPE_COUNT,
-        description=(
+    max_count: Annotated[
+        int,
         "Maximum number of headlines to return. "
-        f"Must be an integer between 1 and {MAX_SCRAPE_COUNT}."
-        ),
-        ),
-        ] = 10,
+        f"Must be an integer between 1 and {MAX_SCRAPE_COUNT}.",
+    ] = 10,
 ) -> str:
     validation_error = _validate_max_count(max_count)
     if validation_error:
         return validation_error
-
-    """AutoGen agent tool function."""
-    if not isinstance(max_count, int):
-        return "Invalid max_count: must be an integer"
-
-    if max_count < 1 or max_count > MAX_SCRAPE_COUNT:
-        return f"Invalid max_count: must be between 1 and {MAX_SCRAPE_COUNT}"
 
     scraper = HeadlineScraper()
     scrape_result = scraper.scrape_with_metrics()

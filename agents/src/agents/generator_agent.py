@@ -4,7 +4,6 @@ import re
 import threading
 from collections.abc import Callable
 from typing import Annotated, Any, Protocol
-from pydantic import Field, StrictInt
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import SystemMessage, UserMessage
@@ -265,14 +264,10 @@ def create_generator_agent() -> AssistantAgent:
 
     def generate_fake_headlines(
         count: Annotated[
-            StrictInt,
-            Field(
-                ge=1,
-                le=MAX_OPENAI_GENERATION_COUNT,
-                description="Number of fake headlines to generate. "
-                "Must be an integer "
-                f"between 1 and {MAX_OPENAI_GENERATION_COUNT}."
-            ),
+            int,
+            "Number of fake headlines to generate. "
+            "Must be an integer "
+            f"between 1 and {MAX_OPENAI_GENERATION_COUNT}.",
         ] = 5,
     ) -> str:
         try:

@@ -6,6 +6,13 @@ from types import SimpleNamespace
 
 def _has_real_openai_key() -> bool:
     key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not key:
+        try:
+            from agents.config import config
+            key = str(getattr(config, "openai_api_key", "")).strip()
+        except Exception:
+            key = ""
+
     return bool(
         key
         and key != "your_key_here"
@@ -92,6 +99,15 @@ async def test_generator_agent_with_real_openai_output_quality_shape():
     )
     assert normalized not in {"done", "complete", "completed", "ok", "success"}
     assert len(normalized) > 20
+    assert "provider: openai_primary" in normalized
+    assert "provider: template_fallback" not in normalized
+    assert "generation failed:" not in normalized
+    assert "generated 1 fake headlines (requested 1)" in normalized
+    assert re.search(r"saved \d+ new headlines", normalized)
+    assert re.search(
+        r"quality:\sinput=1,\skept=1,\sinvalid=0,\sduplicates=0",
+        normalized,
+    )
 
 
 def test_generate_fake_headlines_rejects_bool_count():
