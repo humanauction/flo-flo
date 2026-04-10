@@ -173,3 +173,20 @@ def test_admin_dedupe_chunks_filters_prompt_and_duplicates():
         "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines",
         "Provider: openai_primary",
     ]
+
+
+def test_admin_dedupe_chunks_removes_prompt_from_merged_chunk():
+    task = (
+        "You must call your generate_fake_headlines tool with count=1. "
+        "Return only the tool result summary."
+    )
+    merged = (
+        f"{task}\n"
+        "Generated 1 fake headlines (requested 1)\n\nSaved 1 new headlines"
+    )
+
+    deduped = admin_router._dedupe_chunks([merged], blocked_texts={task})
+
+    assert deduped == [
+        "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines",
+    ]

@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+import re
 from threading import Lock
 from typing import Any, Optional
 from uuid import uuid4
@@ -176,26 +177,45 @@ def _normalize_stream_chunk(value: str) -> str:
     return "\n".join(line for line in lines if line).strip()
 
 
+def _strip_blocked_text(value: str, blocked: str) -> str:
+    # Remove blocked text from value, ignoring case and extra whitespace.
+    if not blocked:
+        return value
+
+    pattern = re.compile(re.escape(blocked), flags=re.IGNORECASE)
+    return pattern.sub("", value)
+
+
 def _dedupe_chunks(
     chunks: list[str],
     *,
     blocked_texts: set[str] | None = None,
 ) -> list[str]:
-    blocked_keys: set[str] = set()
-    for text in blocked_texts or set():
-        normalized = _normalize_stream_chunk(text)
-        if normalized:
-            blocked_keys.add(normalized.lower())
+    blocked_normalized = [
+        _normalize_stream_chunk(text)
+        for text in (blocked_texts or set())
+        if _normalize_stream_chunk(text)
+    ]
 
     seen: set[str] = set()
     deduped: list[str] = []
+
     for chunk in chunks:
         normalized = _normalize_stream_chunk(chunk)
         if not normalized:
             continue
 
+        for blocked in blocked_normalized:
+            normalized = _strip_blocked_text(normalized, blocked)
+            normalized = _normalize_stream_chunk(normalized)
+            if not normalized:
+                break
+
+        if not normalized:
+            continue
+
         key = normalized.lower()
-        if key in blocked_keys or key in seen:
+        if key in seen:
             continue
 
         seen.add(key)

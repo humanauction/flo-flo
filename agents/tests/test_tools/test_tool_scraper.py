@@ -1,8 +1,12 @@
 from typing import Any, cast
-
 import requests
 
-from agents.tools.scraper import HeadlineScraper, scrape_headlines
+from agents.tools.scraper import (
+    HeadlineScraper,
+    SOURCE_FALLBACK_STATIC,
+    SOURCE_GOOGLE_NEWS_RSS,
+    scrape_headlines
+)
 
 
 def test_scrape_fallback_returns_expected_shape():
@@ -188,3 +192,55 @@ def test_scrape_headlines_includes_metrics_summary(monkeypatch):
     assert "fetched_total=" in output
     assert "floridaman_primary:" in output
     assert "fallback_static:" in output
+
+
+def test_scrape_with_metrics_tracks_google_news_source(monkeypatch):
+    scraper = HeadlineScraper(
+        enabled_sources=(SOURCE_GOOGLE_NEWS_RSS, SOURCE_FALLBACK_STATIC),
+    )
+    monkeypatch.setattr(
+        scraper,
+        "scrape_google_news_rss",
+        lambda: [
+            {
+                "text": "Florida man wins cardboard boat race in storm drain",
+                "source_url": "https://news.example/florida-man-race",
+            }
+        ],
+    )
+    monkeypatch.setattr(scraper, "scrape_fallback", lambda: [])
+
+    result = scraper.scrape_with_metrics()
+    metrics = result["metrics"]
+
+    assert len(result["headlines"]) == 1
+    assert metrics["fetched_total"] == 1
+    assert metrics["kept_total"] == 1
+    assert metrics["by_source"][SOURCE_GOOGLE_NEWS_RSS]["fetched"] == 1
+    assert metrics["by_source"][SOURCE_GOOGLE_NEWS_RSS]["kept"] == 1
+
+
+def test_scrape_headlines_includes_google_news_metrics(monkeypatch):
+    scraper = HeadlineScraper(
+        enabled_sources=(SOURCE_GOOGLE_NEWS_RSS,),
+    )
+    monkeypatch.setattr(
+        scraper,
+        "scrape_google_news_rss",
+        lambda: [
+            {
+                "text": "Florida man opens gator-safe bike lane",
+                "source_url": "https://news.example/gator-bike",
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        "agents.tools.scraper.HeadlineScraper",
+        lambda: scraper,
+    )
+
+    output = scrape_headlines(max_count=1)
+
+    assert f"{SOURCE_GOOGLE_NEWS_RSS}:" in output
+    assert "fetched_total=1" in output
+    assert "kept_total=1" in output

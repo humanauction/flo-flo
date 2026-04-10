@@ -4,6 +4,7 @@ from typing import Annotated, Dict, List, TypedDict, cast
 from collections.abc import Callable
 import requests
 from bs4 import BeautifulSoup
+from xml.etree import ElementTree as ET
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +14,10 @@ DEFAULT_MAX_RETRIES = 3
 DEFAULT_BACKOFF_BASE_SECONDS = 0.5
 SOURCE_FLORIDAMAN_PRIMARY = "floridaman_primary"
 SOURCE_FALLBACK_STATIC = "fallback_static"
+SOURCE_GOOGLE_NEWS_RSS = "google_news_rss_florida_man"
+GOOGLE_NEWS_RSS_URL = (
+    "https://news.google.com/rss/search?q=%22Florida+man%22&hl=en-US&gl=US&ceid=US:en"
+)
 
 
 class SourceMetrics(TypedDict):
@@ -97,6 +102,7 @@ class HeadlineScraper:
         self._source_adapters: dict[str, str] = {
             SOURCE_FLORIDAMAN_PRIMARY: "scrape_floridaman_com",
             SOURCE_FALLBACK_STATIC: "scrape_fallback",
+            SOURCE_GOOGLE_NEWS_RSS: "scrape_google_news_rss",
         }
 
     def _fetch_with_retries(self) -> requests.Response | None:
@@ -294,6 +300,33 @@ class HeadlineScraper:
                 ),
             },
         ]
+
+    def scrape_google_news_rss(self) -> List[Dict[str, str]]:
+        try:
+            response = requests.get(
+                GOOGLE_NEWS_RSS_URL,
+                headers=self.headers,
+                timeout=self.timeout_seconds,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            logger.warning("Google News RSS scrape failed: %s", exc)
+            return []
+
+        try:
+            root = ET.fromstring(response.text)
+        except ET.ParseError as exc:
+            logger.warning("Google News RSS parse failed: %s", exc)
+            return []
+
+        headlines: List[Dict[str, str]] = []
+        for item in root.findall("./channel/item")[: self.source_max_items]:
+            title = (item.findtext("title") or "").strip()
+            link = (item.findtext("link") or "").strip()
+            if title and link:
+                headlines.append({"text": title, "source_url": link})
+
+        return headlines
 
     def scrape_with_metrics(self) -> ScrapeResult:
         """Scrape headlines from configured sources with metrics."""
