@@ -35,6 +35,7 @@ db.sqlite3-journal
 .env.local
 .env.production
 env.py
+!backend/migrations/env.py
 
 # Node
 node_modules/
@@ -112,4 +113,4 @@ frontend/README.md
 # Alembic migrations (optional - uncomment to not track migrations)
 # backend/alembic/versions/*.py
 
-# mentor-defensive-coder.agent.md
+mentor-defensive-coder.agent.md
