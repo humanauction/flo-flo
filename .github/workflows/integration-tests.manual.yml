@@ -54,6 +54,11 @@ jobs:
                   pip install -e backend
                   pip install -e agents
                   pip install pytest pytest-asyncio pytest-cov
+            - name: Init DB schema
+              run: |
+                  cd backend
+                  python -m alembic upgrade head
+                  python -m alembic current
             - name: Run OpenAI-marked tests
               env:
                   OPENAI_API_KEY: ${{ secrets['OPENAI_API_KEY'] }}
