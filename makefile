@@ -43,8 +43,6 @@ canary-scrape: check-venv
 canary-generate: check-venv
 	CONFIRM_OPENAI="$(CONFIRM_OPENAI)" BASE_URL="$(BASE_URL)" COUNT="$(COUNT)" POLL_INTERVAL="$(POLL_INTERVAL)" MAX_WAIT="$(MAX_WAIT)" bash scripts/canary_admin_job.sh generate
 
-test: ts-bk ts-ag ts-fr ts-man
-
 ts-bk: check-venv
 	cd backend && $(PYTHON) -m pytest -vv -s -ra -m "not external and not openai" tests
 

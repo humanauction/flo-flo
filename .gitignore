@@ -109,7 +109,9 @@ dist-ssr
 
 frontend/README.md
 
-scripts/
+#scripts
+scripts/local/
+scripts/*.local.sh
 
 
 # Alembic migrations (optional - uncomment to not track migrations)
