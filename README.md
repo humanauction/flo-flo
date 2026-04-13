@@ -179,7 +179,7 @@ frontend/__tests__/lib/
 - [x] Database integration tools
 - [x] Orchestrator for agent coordination
 
-### Phase 3: Agent Enhancement 🚧 (Current)
+### Phase 3: Agent Enhancement (Current)
 
 Goal: robust offline-first behavior, explicit external/openai test gates, stronger quality controls.
 
@@ -198,9 +198,9 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 - [x] OpenAI integration tests marked `@pytest.mark.openai`
 - [x] Manual/scheduled integration workflow with secret guard
 
-#### 3.3 Improve Scraping (In Progress)
+#### 3.3 Improve Scraping (Core Implemented)
 
-- [ ] Add additional real news source adapters beyond current conservative setup
+- [x] Add additional real news source adapters beyond current conservative setup
 - [x] Retry/backoff and timeout strategy
 - [x] Stronger validation and dedupe metrics (`scrape_with_metrics`)
 
@@ -215,7 +215,7 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 - [x] Add frontend admin page to run jobs and show status/logs
 - [x] Add admin job status endpoint and polling contract
 
-#### 3.6 Context Augmentation (Planned After 3.3, Before Phase 4)
+#### 3.6 Context Augmentation (In Progress)
 
 - [ ] RAG context from real headlines
 - [ ] RAG grounding metadata for generated headline provenance

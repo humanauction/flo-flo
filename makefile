@@ -1,3 +1,9 @@
+BASE_URL ?= http://localhost:8000
+COUNT ?= 1
+POLL_INTERVAL ?= 1
+MAX_WAIT ?= 60
+CONFIRM_OPENAI ?= 0
+
 PYTHON := $(shell command -v python3 2>/dev/null || command -v python)
 
 .PHONY: check-venv init bk fr table test ts-bk ts-ag ts-fr ts-man \
@@ -25,6 +31,18 @@ fr:
 # Backward-compatible alias (old target name)
 table: migrate
 
+.PHONY: help test-safe test-full canary-scrape canary-generate ts-openai
+
+test-safe: ts-bk ts-ag ts-fr
+test-full: ts-bk ts-ag ts-fr ts-man
+test: test-safe
+
+canary-scrape: check-venv
+	BASE_URL="$(BASE_URL)" COUNT="$(COUNT)" POLL_INTERVAL="$(POLL_INTERVAL)" MAX_WAIT="$(MAX_WAIT)" bash scripts/canary_admin_job.sh scrape
+
+canary-generate: check-venv
+	CONFIRM_OPENAI="$(CONFIRM_OPENAI)" BASE_URL="$(BASE_URL)" COUNT="$(COUNT)" POLL_INTERVAL="$(POLL_INTERVAL)" MAX_WAIT="$(MAX_WAIT)" bash scripts/canary_admin_job.sh generate
+
 test: ts-bk ts-ag ts-fr ts-man
 
 ts-bk: check-venv
@@ -38,6 +56,10 @@ ts-fr:
 
 ts-man: check-venv
 	$(PYTHON) -m pytest -vv -s -ra -m external agents/tests/test_scraper_agent.py
+
+ts-openai: check-venv
+	@if [ -z "$$OPENAI_API_KEY" ]; then echo "OPENAI_API_KEY is required"; exit 1; fi
+	cd agents && $(PYTHON) -m pytest -vv -s -ra -m openai tests
 
 lint:
 	cd frontend && npm run lint
@@ -57,3 +79,10 @@ migrate-down: check-venv
 
 migrate-current: check-venv
 	cd backend && $(PYTHON) -m alembic current
+
+help:
+	@echo "test-safe        offline default"
+	@echo "test-full        includes external/manual"
+	@echo "canary-scrape    zero-token admin scrape canary"
+	@echo "canary-generate  count=1 default, requires CONFIRM_OPENAI=1"
+	@echo "ts-openai        explicit OpenAI integration tests"
