@@ -153,6 +153,34 @@ def test_admin_normalize_stream_chunk_strips_blank_lines():
     )
 
 
+def test_admin_dedupe_chunks_keeps_single_provenance_line():
+    task = (
+        "You must call your generate_fake_headlines tool with count=1. "
+        "Return only the tool result summary."
+    )
+    provenance = (
+        'Provenance: {"provider":"openai_primary",'
+        '"requested_count":1,"schema_version":1,'
+        '"recent_real_context":[],"recent_real_context_count":0}'
+    )
+
+    chunks = [
+        task,
+        "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines",
+        "Provider: openai_primary",
+        provenance,
+        provenance.lower(),
+    ]
+
+    deduped = admin_router._dedupe_chunks(chunks, blocked_texts={task})
+
+    assert deduped == [
+        "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines",
+        "Provider: openai_primary",
+        provenance,
+    ]
+
+
 def test_admin_dedupe_chunks_filters_prompt_and_duplicates():
     task = (
         "You must call your generate_fake_headlines tool with count=1. "

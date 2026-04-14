@@ -110,6 +110,25 @@ async def test_generator_agent_with_real_openai_output_quality_shape():
         normalized,
     )
 
+    provenance_lines = [
+        line for line in full_text.splitlines()
+        if line.startswith("Provenance: ")
+    ]
+    assert len(provenance_lines) == 1
+
+    provenance = json.loads(
+        provenance_lines[0][len("Provenance: "):]
+    )
+    assert provenance["schema_version"] == 1
+    assert provenance["provider"] == "openai_primary"
+    assert provenance["requested_count"] == 1
+    assert isinstance(provenance["recent_real_context"], list)
+    assert provenance["recent_real_context_count"] == len(
+        provenance["recent_real_context"]
+    )
+    if provenance["recent_real_context"]:
+        assert "is_real" not in provenance["recent_real_context"][0]
+
 
 def test_generate_fake_headlines_rejects_bool_count():
     from agents.generator_agent import generate_fake_headlines_sync

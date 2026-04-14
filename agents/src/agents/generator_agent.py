@@ -401,7 +401,12 @@ def create_generator_agent() -> AssistantAgent:
                 headline_provider=lambda _requested: raw_headlines,
                 max_count=MAX_OPENAI_GENERATION_COUNT,
             )
-            return f"{summary}\nProvider: {provider}"
+            return _append_provenance_to_summary(
+                summary,
+                provider=provider,
+                requested_count=count,
+                recent_real_context=recent_real_context,
+            )
 
         except Exception as e:
             logger.error("Generator tool failed: %s", e, exc_info=True)
