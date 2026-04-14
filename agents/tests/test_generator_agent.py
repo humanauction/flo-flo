@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import pytest
@@ -219,3 +220,44 @@ def test_generate_fake_headlines_reports_provider_shortfall():
         "Notice: provider shortfall 2 (requested=12, provider_input=10)"
         in output
     )
+
+
+def test_append_provenance_to_summary_includes_single_json_object():
+    from agents.generator_agent import _append_provenance_to_summary
+
+    base_summary = (
+        "Generated 1 fake headlines (requested 1)\n"
+        "Saved 1 new headlines"
+    )
+    context_rows = [
+        {
+            "headline_id": 101,
+            "text": "Florida man real context one",
+            "source_url": "https://example.com/one",
+            "created_at": "2026-04-14T12:00:00+00:00",
+            "is_real": True,
+        }
+    ]
+
+    output = _append_provenance_to_summary(
+        base_summary,
+        provider="openai_primary",
+        requested_count=1,
+        recent_real_context=context_rows,
+    )
+
+    assert "Provider: openai_primary" in output
+
+    provenance_lines = [
+        line for line in output.splitlines()
+        if line.startswith("Provenance: ")
+    ]
+    assert len(provenance_lines) == 1
+
+    payload = json.loads(provenance_lines[0][len("Provenance: "):])
+    assert payload["schema_version"] == 1
+    assert payload["provider"] == "openai_primary"
+    assert payload["requested_count"] == 1
+    assert payload["recent_real_context_count"] == 1
+    assert payload["recent_real_context"][0]["headline_id"] == 101
+    assert "is_real" not in payload["recent_real_context"][0]

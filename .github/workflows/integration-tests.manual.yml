@@ -60,14 +60,14 @@ jobs:
                   python -m alembic upgrade head
                   python -m alembic current
             - name: Run OpenAI-marked tests
-                  if ${{ secrets.OPENAI_API_KEY != '' }}
               env:
-                  OPENAI_API_KEY: ${{ secrets['OPENAI_API_KEY'] }}
+                  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
               run: |
-                  (cd agents && pytest -v -m "openai" -rs) || code=$?
-                  if [ "${code:-0}" -ne 0 ] && [ "${code}" -ne 5 ]; then
-                    exit "${code}"
-                  fi
+                  if [ -n "${OPENAI_API_KEY:-}" ]; then
+                    (cd agents && pytest -v -m "openai" -rs) || code=$?
+                    if [ "${code:-0}" -ne 0 ] && [ "${code}" -ne 5 ]; then
+                      exit "${code}"
+                    fi
                   else
                     echo "OPENAI_API_KEY is not set. Skipping OpenAI tests."
                   fi

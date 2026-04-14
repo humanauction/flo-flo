@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import re
 import threading
@@ -35,6 +36,8 @@ _OPENAI_PROVIDER = "openai_primary"
 _TEMPLATE_PROVIDER = "template_fallback"
 _LINE_PREFIX_RE = re.compile(r"^\s*(?:[-*•]+|\d+[.)])\s*")
 OPENAI_PROVIDER_TIMEOUT_SECONDS = 12.0
+DEFAULT_CONTEXT_ROWS = 3
+PROVENANCE_SCHEMA_VERSION = 1
 
 
 def _template_provider(count: int) -> list[str]:
@@ -128,7 +131,12 @@ class _ModelClientLike(Protocol):
 async def _openai_provider(
     model_client: _ModelClientLike,
     count: int,
+    recent_real_context: list[dict[str, Any]] | None = None,
 ) -> list[str]:
+    context_json = _context_rows_to_prompt_json(
+        recent_real_context or []
+    )
+
     messages = [
         SystemMessage(
             content=(
@@ -139,7 +147,12 @@ async def _openai_provider(
         ),
         UserMessage(
             source="generator_agent",
-            content=f"Generate {count} unique fake headlines.",
+            content=(
+                f"Generate {count} unique fake headlines.\n"
+                "Use recent real context for topical grounding only.\n"
+                "Do not copy or closely paraphrase context headlines.\n"
+                f"Recent real context JSON: {context_json}"
+            ),
         ),
     ]
     result = await model_client.create(messages=messages)
@@ -262,6 +275,81 @@ def generate_fake_headlines_sync(
     return summary
 
 
+def _get_recent_real_context(
+    limit: int = DEFAULT_CONTEXT_ROWS,
+) -> list[dict[str, Any]]:
+    from agents.tools.database import get_recent_real_headline_context
+
+    try:
+        rows = get_recent_real_headline_context(limit=limit)
+    except Exception as exc:
+        logger.warning("Recent real context fetch failed: %s", exc)
+        return []
+
+    if not isinstance(rows, list):
+        return []
+
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _compact_context_rows(
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    compact: list[dict[str, Any]] = []
+
+    for row in rows:
+        text = row.get("text")
+        if not isinstance(text, str) or not text.strip():
+            continue
+
+        compact.append(
+            {
+                "headline_id": row.get("headline_id"),
+                "text": text.strip(),
+                "source_url": row.get("source_url"),
+                "created_at": row.get("created_at"),
+            }
+        )
+
+    return compact
+
+
+def _context_rows_to_prompt_json(rows: list[dict[str, Any]]) -> str:
+    return json.dumps(_compact_context_rows(rows), ensure_ascii=True)
+
+
+def _build_provenance_payload(
+    *,
+    provider: str,
+    requested_count: int,
+    recent_real_context: list[dict[str, Any]],
+) -> dict[str, Any]:
+    compact_rows = _compact_context_rows(recent_real_context)
+    return {
+        "schema_version": PROVENANCE_SCHEMA_VERSION,
+        "provider": provider,
+        "requested_count": requested_count,
+        "recent_real_context_count": len(compact_rows),
+        "recent_real_context": compact_rows,
+    }
+
+
+def _append_provenance_to_summary(
+    summary: str,
+    *,
+    provider: str,
+    requested_count: int,
+    recent_real_context: list[dict[str, Any]],
+) -> str:
+    payload = _build_provenance_payload(
+        provider=provider,
+        requested_count=requested_count,
+        recent_real_context=recent_real_context,
+    )
+    payload_json = json.dumps(payload, ensure_ascii=True, sort_keys=True)
+    return f"{summary}\nProvider: {provider}\nProvenance: {payload_json}"
+
+
 def create_generator_agent() -> AssistantAgent:
     model_client = _build_model_client()
     db_stats_tool = _get_db_stats_tool()
@@ -284,10 +372,15 @@ def create_generator_agent() -> AssistantAgent:
 
             provider = _OPENAI_PROVIDER
             raw_headlines: list[str] = []
+            recent_real_context = _get_recent_real_context()
 
             try:
                 raw_headlines = _run_coro_blocking(
-                    _openai_provider(model_client=model_client, count=count)
+                    _openai_provider(
+                        model_client=model_client,
+                        count=count,
+                        recent_real_context=recent_real_context,
+                    )
                 ) or []
             except TimeoutError as exc:
                 logger.warning("%s. Falling back to templates.", exc)
