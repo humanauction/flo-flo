@@ -45,6 +45,58 @@ json_field() {
   "$PYTHON_BIN" -c 'import json,sys; data=json.load(sys.stdin); print(data[sys.argv[1]])' "$field"
 }
 
+assert_generate_provenance() {
+  local resp="$1"
+
+  RESP_JSON="$resp" "$PYTHON_BIN" - <<'PY'
+import json
+import os
+import sys
+
+body = json.loads(os.environ["RESP_JSON"])
+if body.get("job_type") != "generate":
+    sys.exit(0)
+
+if body.get("status") != "completed":
+    raise SystemExit("Generate canary did not complete")
+
+summary = body.get("result_summary")
+if not isinstance(summary, str) or not summary.strip():
+    raise SystemExit("Generate result_summary missing or empty")
+
+lines = [line for line in summary.splitlines() if line.startswith("Provenance: ")]
+if len(lines) != 1:
+    raise SystemExit(f"Expected exactly one Provenance line, got {len(lines)}")
+
+payload = json.loads(lines[0][len("Provenance: "):])
+
+required = {
+    "schema_version",
+    "provider",
+    "requested_count",
+    "recent_real_context_count",
+    "recent_real_context",
+}
+missing = sorted(required - payload.keys())
+if missing:
+    raise SystemExit(f"Provenance missing keys: {missing}")
+
+if payload["requested_count"] != body.get("requested_count"):
+    raise SystemExit("Provenance requested_count mismatch")
+
+if payload["provider"] not in {"openai_primary", "template_fallback"}:
+    raise SystemExit(f"Unexpected provider: {payload['provider']}")
+
+if not isinstance(payload["recent_real_context"], list):
+    raise SystemExit("recent_real_context must be a list")
+
+if payload["recent_real_context_count"] != len(payload["recent_real_context"]):
+    raise SystemExit("recent_real_context_count mismatch")
+
+print("provenance_assertions=pass")
+PY
+}
+
 [[ "$JOB_TYPE" == "scrape" || "$JOB_TYPE" == "generate" ]] || die "Usage: $0 <scrape|generate>"
 
 require_uint_in_range "COUNT" "$COUNT" 1 3
@@ -72,6 +124,11 @@ while true; do
 
   if [[ "$STATUS" == "completed" || "$STATUS" == "failed" ]]; then
     printf '%s\n' "$RESP" | "$PYTHON_BIN" -m json.tool
+
+    if [[ "$JOB_TYPE" == "generate" && "$STATUS" == "completed" ]]; then
+      assert_generate_provenance "$RESP"
+    fi
+    
     [[ "$STATUS" == "completed" ]] && exit 0 || exit 1
   fi
 

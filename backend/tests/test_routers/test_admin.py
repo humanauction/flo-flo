@@ -1,3 +1,4 @@
+import json
 import time
 
 from app.routers import admin as admin_router
@@ -158,10 +159,16 @@ def test_admin_dedupe_chunks_keeps_single_provenance_line():
         "You must call your generate_fake_headlines tool with count=1. "
         "Return only the tool result summary."
     )
+    provenance_payload = {
+        "provider": "openai_primary",
+        "requested_count": 1,
+        "schema_version": 1,
+        "recent_real_context": [],
+        "recent_real_context_count": 0,
+    }
     provenance = (
-        'Provenance: {"provider":"openai_primary",'
-        '"requested_count":1,"schema_version":1,'
-        '"recent_real_context":[],"recent_real_context_count":0}'
+        "Provenance: "
+        f"{json.dumps(provenance_payload, sort_keys=True)}"
     )
 
     chunks = [
@@ -174,11 +181,32 @@ def test_admin_dedupe_chunks_keeps_single_provenance_line():
 
     deduped = admin_router._dedupe_chunks(chunks, blocked_texts={task})
 
-    assert deduped == [
-        "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines",
-        "Provider: openai_primary",
-        provenance,
-    ]
+    assert deduped[0] == (
+        "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines"
+    )
+    assert deduped[1] == "Provider: openai_primary"
+    assert len(deduped) == 3
+
+    provenance_line = deduped[2]
+    assert provenance_line.startswith("Provenance: ")
+
+    parsed = json.loads(provenance_line.split("Provenance: ", 1)[1])
+
+    required_keys = {
+        "schema_version",
+        "provider",
+        "requested_count",
+        "recent_real_context_count",
+        "recent_real_context",
+    }
+    assert required_keys.issubset(parsed.keys())
+    assert parsed["schema_version"] == 1
+    assert parsed["provider"] == "openai_primary"
+    assert parsed["requested_count"] == 1
+    assert isinstance(parsed["recent_real_context"], list)
+    assert parsed["recent_real_context_count"] == len(
+        parsed["recent_real_context"]
+    )
 
 
 def test_admin_dedupe_chunks_filters_prompt_and_duplicates():
