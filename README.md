@@ -392,6 +392,6 @@ MIT
 
 ---
 
-**Status:** 🚧 Phase 3 (3.3 source expansion in progress; 3.4 and 3.5 baseline implemented)
+**Status:** 🚧 Phase 3 (3.6 RAG context from real headlines)
 **Last Updated:** April 9, 2026
-**Next Milestone:** 3.3 additional source adapters, then 3.6 Optional RAG context (April 2026)
+**Next Milestone:** 3.6 inject small recent-real-headline context set; include provenance metadata in output (April 2026)

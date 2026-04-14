@@ -80,3 +80,14 @@ class HeadlineRepository:
             self.db.commit()
             return True
         return False
+
+    def get_recent_real(self, limit: int = 3) -> List[Headline]:
+        """Get recent real headlines for RAG context"""
+        safe_limit = max(1, min(limit, 10))
+        return (
+            self.db.query(Headline)
+            .filter(Headline.is_real.is_(True))
+            .order_by(Headline.created_at.desc(), Headline.id.desc())
+            .limit(safe_limit)
+            .all()
+        )
