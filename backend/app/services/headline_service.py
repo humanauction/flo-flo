@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.db.repositories.headline_repository import HeadlineRepository
 from app.models.headline import Headline
-from typing import Optional, Dict
+from typing import Any, Dict, Optional
 
 
 class HeadlineService:
@@ -62,3 +62,25 @@ class HeadlineService:
             is_real=is_real,
             source_url=source_url
         )
+
+    def get_recent_real_headline_context(
+            self,
+            limit: int = 3,
+    ) -> list[Dict[str, Any]]:
+        """Get recent real headlines for RAG context"""
+        rows = self.repo.get_recent_real(limit=limit)
+        context: list[Dict[str, Any]] = []
+
+        for row in rows:
+            context.append(
+                {
+                    "headline_id": int(row.id),
+                    "text": str(row.text),
+                    "source_url": row.source_url,
+                    "created_at": row.created_at.isoformat()
+                    if getattr(row, "created_at", None) is not None
+                    else None,
+                    "is_real": bool(row.is_real),
+                }
+            )
+        return context

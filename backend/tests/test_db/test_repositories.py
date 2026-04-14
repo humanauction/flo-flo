@@ -38,7 +38,7 @@ def test_repository_exists_and_delete(db_session):
 
 def test_get_recent_real_headlines(db_session):
     repo = HeadlineRepository(db_session)
-    
+
     old_real = repo.create(
         text="Florida man old real headline",
         is_real=True,
@@ -64,4 +64,3 @@ def test_get_recent_real_headlines(db_session):
     assert len(recent_reals) == 2
     assert all(bool(row.is_real) for row in recent_reals)
     assert [row.id for row in recent_reals] == [new_real.id, old_real.id]
-

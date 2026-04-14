@@ -17,6 +17,8 @@ from app.services.headline_service import HeadlineService  # noqa: E402
 logger = logging.getLogger(__name__)
 
 MAX_HEADLINE_BATCH = 100
+MAX_CONTEXT_LIMIT = 10
+DEFAULT_CONTEXT_LIMIT = 3
 
 
 def _normalize_headline_payload(item: Any) -> dict[str, Any] | None:
@@ -109,5 +111,29 @@ def get_db_stats() -> str:
     except Exception as e:
         logger.error("Stats retrieval failed: %s", e)
         return f"❌ Could not fetch stats: {str(e)}"
+    finally:
+        db.close()
+
+
+def _normalize_context_limit(limit: Any) -> int:
+    if isinstance(limit, bool) or not isinstance(limit, int):
+        return DEFAULT_CONTEXT_LIMIT
+    return max(1, min(limit, MAX_CONTEXT_LIMIT))
+
+
+def get_recent_real_headline_context(
+        limit: int = DEFAULT_CONTEXT_LIMIT
+) -> list[dict[str, Any]]:
+    """Fetch recent real headlines for RAG context."""
+    db = SessionLocal()
+    service = HeadlineService(db)
+
+    safe_limit = _normalize_context_limit(limit)
+
+    try:
+        return service.get_recent_real_headline_context(limit=safe_limit)
+    except Exception as e:
+        logger.error("Context retrieval failed: %s", e, exc_info=True)
+        return []
     finally:
         db.close()

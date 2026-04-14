@@ -88,3 +88,61 @@ def test_save_headlines_to_db_counts_invalid_entries(monkeypatch, tmp_path):
     result = db_tools.save_headlines_to_db(payload)
     assert "Saved 1" in result
     assert "invalid" in result
+
+
+def test_get_recent_real_headline_context_filters_and_orders(
+        monkeypatch,
+        tmp_path
+):
+
+    test_db_path = tmp_path / "agents_tools_test_recent_real.db"
+    engine = create_engine(
+        f"sqlite:///{test_db_path}",
+        connect_args={"check_same_thread": False},
+    )
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+    Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(db_tools, "SessionLocal", testing_session_local)
+
+    db_tools.save_headlines_to_db(
+        [
+            {
+                "text": "Florida man old real tool context",
+                "is_real": True,
+                "source_url": "https://example.com/old"
+            }
+        ]
+    )
+    db_tools.save_headlines_to_db(
+        [
+            {
+                "text": "Florida man fake tool context",
+                "is_real": False,
+                "source_url": None
+            }
+        ]
+    )
+    db_tools.save_headlines_to_db(
+        [
+            {
+                "text": "Florida man new real tool context",
+                "is_real": True,
+                "source_url": "https://example.com/new"
+            }
+        ]
+    )
+
+    latest = db_tools.get_recent_real_headline_context(limit=1)
+    assert len(latest) == 1
+    assert latest[0]["text"] == "Florida man new real tool context"
+
+    rows = db_tools.get_recent_real_headline_context(limit=3)
+    assert [row["text"] for row in rows] == [
+        "Florida man new real tool context",
+        "Florida man old real tool context",
+    ]
+    assert all(row["is_real"] is True for row in rows)

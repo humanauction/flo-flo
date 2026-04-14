@@ -73,7 +73,11 @@ def _build_model_client() -> OpenAIChatCompletionClient:
     api_key = getattr(config, "openai_api_key", None)
     model = getattr(config, "openai_model", None)
 
-    if not isinstance(api_key, str) or not api_key.strip() or api_key == "your_key_here":
+    if (
+        not isinstance(api_key, str)
+        or not api_key.strip()
+        or api_key == "your_key_here"
+    ):
         raise RuntimeError(
             "Generator configuration error: "
             "OPENAI_API_KEY missing or placeholder."

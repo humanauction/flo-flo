@@ -16,7 +16,8 @@ SOURCE_FLORIDAMAN_PRIMARY = "floridaman_primary"
 SOURCE_FALLBACK_STATIC = "fallback_static"
 SOURCE_GOOGLE_NEWS_RSS = "google_news_rss_florida_man"
 GOOGLE_NEWS_RSS_URL = (
-    "https://news.google.com/rss/search?q=%22Florida+man%22&hl=en-US&gl=US&ceid=US:en"
+    "https://news.google.com/rss/search?"
+    "q=%22Florida+man%22&hl=en-US&gl=US&ceid=US:en"
 )
 
 
