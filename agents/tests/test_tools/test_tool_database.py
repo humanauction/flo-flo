@@ -1,5 +1,5 @@
 from typing import Any, cast
-
+import json
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -146,3 +146,48 @@ def test_get_recent_real_headline_context_filters_and_orders(
         "Florida man old real tool context",
     ]
     assert all(row["is_real"] is True for row in rows)
+
+
+def test_recent_real_context_is_json_serializable(monkeypatch, tmp_path):
+    test_db_path = tmp_path / "agents_tools_test_context_json.db"
+    engine = create_engine(
+        f"sqlite:///{test_db_path}",
+        connect_args={"check_same_thread": False},
+    )
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+    )
+    Base.metadata.create_all(bind=engine)
+    monkeypatch.setattr(db_tools, "SessionLocal", testing_session_local)
+
+    db_tools.save_headlines_to_db([{
+        "text": "Florida man old real context json",
+        "is_real": True,
+        "source_url": "https://example.com/old",
+    }])
+    db_tools.save_headlines_to_db([{
+        "text": "Florida man fake context json",
+        "is_real": False,
+        "source_url": None,
+    }])
+    db_tools.save_headlines_to_db([{
+        "text": "Florida man new real context json",
+        "is_real": True,
+        "source_url": "https://example.com/new",
+    }])
+
+    rows = db_tools.get_recent_real_headline_context(limit=3)
+
+    assert isinstance(rows, list)
+    assert all(isinstance(r, dict) for r in rows)
+
+    required = {"headline_id", "text", "source_url", "created_at", "is_real"}
+    assert all(required.issubset(r.keys()) for r in rows)
+    assert all(r["is_real"] is True for r in rows)
+
+    payload = {"provenance": {"recent_real_context": rows}}
+    serialized = json.dumps(payload)
+    decoded = json.loads(serialized)
+    assert decoded["provenance"]["recent_real_context"] == rows
