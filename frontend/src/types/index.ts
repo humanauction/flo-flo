@@ -14,7 +14,7 @@ export interface GameStats {
     total: number;
     correct: number;
     streak: number;
-    bestStreak: number;   
+    bestStreak: number;
 }
 
 export interface AdminStats {
@@ -23,8 +23,8 @@ export interface AdminStats {
     fake_headlines: number;
 }
 
-export type AdminJobType = "scrape"| "generate";
-export type AdminJobStatus = "queued"| "running"| "completed"| "failed";
+export type AdminJobType = "scrape" | "generate";
+export type AdminJobStatus = "queued" | "running" | "completed" | "failed";
 
 export interface AdminJob {
     job_id: string;
@@ -37,4 +37,20 @@ export interface AdminJob {
     finished_at: string | null;
     error: string | null;
     result_summary: string | null;
+    result_provenance: AdminJobProvenance | null;
+}
+
+export interface AdminJobProvenanceContextRow {
+    headline_id: number | null;
+    text: string;
+    source_url: string | null;
+    created_at: string | null;
+}
+
+export interface AdminJobProvenance {
+    schema_version: number;
+    provider: string;
+    requested_count: number;
+    recent_real_context_count: number;
+    recent_real_context: AdminJobProvenanceContextRow[];
 }

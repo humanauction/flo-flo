@@ -106,7 +106,9 @@ export default function AdminPage() {
         <main className="min-h-screen bg-gradient-to-b from-blue-900 to-blue-950 px-4 py-8">
             <section className="mx-auto w-full max-w-3xl rounded-xl border border-blue-300/25 bg-black/25 p-6">
                 <div className="mb-6 flex items-center justify-between">
-                    <h1 className="text-2xl font-semibold text-white">Admin Jobs</h1>
+                    <h1 className="text-2xl font-semibold text-white">
+                        Admin Jobs
+                    </h1>
                     <Link
                         href="/"
                         className="rounded-md border border-blue-300 px-3 py-1 text-sm text-blue-100 hover:bg-blue-800/40"
@@ -168,7 +170,9 @@ export default function AdminPage() {
                     </div>
 
                     {loadingStats || !stats ? (
-                        <p className="text-sm text-blue-200">Loading stats...</p>
+                        <p className="text-sm text-blue-200">
+                            Loading stats...
+                        </p>
                     ) : (
                         <div className="grid grid-cols-3 gap-3 text-sm">
                             <div className="rounded bg-black/25 p-2 text-center">
@@ -199,7 +203,9 @@ export default function AdminPage() {
                     </h2>
 
                     {!job ? (
-                        <p className="text-sm text-blue-200">No jobs queued yet.</p>
+                        <p className="text-sm text-blue-200">
+                            No jobs queued yet.
+                        </p>
                     ) : (
                         <div className="space-y-2 text-sm text-blue-100">
                             <div>Job ID: {job.job_id}</div>
@@ -208,12 +214,80 @@ export default function AdminPage() {
                             <div>Requested Count: {job.requested_count}</div>
                             <div>Message: {job.message}</div>
                             {job.error && (
-                                <div className="text-red-300">Error: {job.error}</div>
+                                <div className="text-red-300">
+                                    Error: {job.error}
+                                </div>
                             )}
                             {job.result_summary && (
                                 <pre className="mt-2 overflow-auto rounded bg-black/35 p-3 text-xs text-slate-100">
-{job.result_summary}
+                                    {job.result_summary}
                                 </pre>
+                            )}
+                            {job.result_provenance && (
+                                <div
+                                    data-testid="job-provenance-panel"
+                                    className="mt-2 rounded border border-blue-300/20 bg-black/25 p-3"
+                                >
+                                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-200">
+                                        Provenance
+                                    </div>
+
+                                    <div className="grid gap-1 text-xs text-blue-100 sm:grid-cols-2">
+                                        <div>
+                                            Schema: v
+                                            {
+                                                job.result_provenance
+                                                    .schema_version
+                                            }
+                                        </div>
+                                        <div>
+                                            Provider:{" "}
+                                            {job.result_provenance.provider}
+                                        </div>
+                                        <div>
+                                            Requested Count:{" "}
+                                            {
+                                                job.result_provenance
+                                                    .requested_count
+                                            }
+                                        </div>
+                                        <div>
+                                            Context Rows:{" "}
+                                            {
+                                                job.result_provenance
+                                                    .recent_real_context_count
+                                            }
+                                        </div>
+                                    </div>
+                                    {job.result_provenance.recent_real_context
+                                        .length > 0 && (
+                                        <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-slate-100">
+                                            {job.result_provenance.recent_real_context.map(
+                                                (row, idx) => (
+                                                    <li
+                                                        key={
+                                                            String(
+                                                                row.headline_id ??
+                                                                    "na",
+                                                            ) +
+                                                            "-" +
+                                                            String(idx)
+                                                        }
+                                                    >
+                                                        <span>{row.text}</span>
+                                                        {row.source_url && (
+                                                            <span className="ml-2 text-blue-300/90">
+                                                                (
+                                                                {row.source_url}
+                                                                )
+                                                            </span>
+                                                        )}
+                                                    </li>
+                                                ),
+                                            )}
+                                        </ul>
+                                    )}
+                                </div>
                             )}
                         </div>
                     )}
