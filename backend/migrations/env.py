@@ -5,7 +5,7 @@ from alembic import context
 
 from app.config import settings
 from app.db.database import Base
-from app.models import Headline, TokenUsage  # noqa: F401
+from app.models import GenerationAudit, Headline, TokenUsage  # noqa: F401
 
 config = context.config
 
