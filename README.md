@@ -20,11 +20,17 @@ Core loop:
 ## Current Status Snapshot
 
 - Phase 1 and Phase 2 are complete.
-- Phase 3.3 has conservative source adapter/metrics support in scraper tooling.
-- Phase 3.4 In Progress with OpenAI-native generation hardening.
+- Phase 3.3 scraping improvements are implemented (multi-source adapters, retries, metrics, dedupe).
+- Phase 3.4 generation hardening is implemented (OpenAI-primary with deterministic fallback, quality filters).
+- Phase 3.5 admin control plane is implemented (job queueing, polling, status lifecycle).
+- Phase 3.6 is in progress and partially delivered:
+    - recent real-headline context injection into generation prompt
+    - provenance JSON included in generator output
+    - parsed result_provenance returned in admin job status API
+    - provenance shown in admin UI status panel
 - CI split is stable.
 - Offline tests run automatically.
-- External/OpenAI paths are isolated to manual/scheduled integration workflow.
+- External/OpenAI paths remain isolated to manual/scheduled integration workflow.
 
 ## Tech Stack
 
@@ -127,11 +133,14 @@ flo-flo/
 │ │ │ └── api.ts
 │ │ └── types/
 │ │ └── index.ts
-│ ├── tests/
-│ │ ├── components/
+│ ├── __tests__/
+│ │ ├── app/
+│ │ │ └── admin.page.test.tsx
 │ │ └── lib/
 │ │ └── api.test.ts
 │ └── package.json
+├── scripts/
+│ └── canary_admin_job.sh
 ├── tests/
 │ ├── test_api_integration.py
 │ └── test_e2e_headline_flow.py
@@ -217,8 +226,12 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 
 #### 3.6 Context Augmentation (In Progress)
 
-- [ ] RAG context from real headlines
-- [ ] RAG grounding metadata for generated headline provenance
+- [x] Inject small recent real-headline context set into generation prompt
+- [x] Include provenance metadata in generator output summary
+- [x] Parse and expose result_provenance in admin job status API payload
+- [x] Render provenance details in admin UI status panel (read-only)
+- [ ] Persist provenance/audit history in DB (migration + repository/service)
+- [ ] Expand context strategy beyond small recent set (ranking/filtering/windowing)
 
 ### Phase 4: Polish & Production
 
@@ -336,7 +349,7 @@ Do not use runtime `Base.metadata.create_all()` for schema management.
 - `POST /api/admin/headline` (manual insert)
 - `POST /api/admin/scrape` (queues scrape job, optional count 1-50, default 10)
 - `POST /api/admin/generate` (queues generate job, optional count 1-50, default 10)
-- `GET /api/admin/jobs/{job_id}` (returns queued, running, completed, or failed state with summary or error)
+- `GET /api/admin/jobs/{job_id}` (returns queued/running/completed/failed state with `result_summary` plus parsed `result_provenance` when available)
 
 ## Testing
 
@@ -354,6 +367,14 @@ python -m pytest -m "not external and not openai"
 # focused scraper/generator tool tests
 python -m pytest -q tests/test_tools/test_tool_scraper.py
 python -m pytest -q tests/test_tools/test_tool_generator_quality.py
+
+# provenance-focused checks
+python -m pytest -q agents/tests/test_generator_agent.py -k "provenance or openai_provider"
+python -m pytest -q backend/tests/test_routers/test_admin.py -k "provenance or dedupe"
+
+# frontend admin provenance panel test
+cd frontend
+npm test -- --verbose __tests__/app/admin.page.test.tsx
 ```
 
 ### Root Integration Scaffolds
@@ -392,6 +413,6 @@ MIT
 
 ---
 
-**Status:** 🚧 Phase 3 (3.6 RAG context from real headlines)
-**Last Updated:** April 9, 2026
-**Next Milestone:** 3.6 inject small recent-real-headline context set; include provenance metadata in output (April 2026)
+**Status:** 🚧 Phase 3 (3.6 context augmentation in progress; provenance pipeline implemented end-to-end)
+**Last Updated:** April 15, 2026
+**Next Milestone:** 3.6.2 persist provenance/audit history in DB (migration + write path + API verification)
