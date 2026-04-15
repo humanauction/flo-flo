@@ -162,4 +162,42 @@ describe("AdminPage provenance panel", () => {
         );
         expect(contextItems[0]).toHaveTextContent("https://example.com/source");
     });
+
+    test("does not render provenance panel when result_provenance is null", async () => {
+        mockTriggerGenerateJob.mockResolvedValueOnce({
+            job_id: "gen-job-no-provenance",
+            job_type: "generate",
+            status: "completed",
+            requested_count: 1,
+            message: "generate job completed",
+            created_at: "2026-04-15T00:10:00+00:00",
+            started_at: "2026-04-15T00:10:01+00:00",
+            finished_at: "2026-04-15T00:10:02+00:00",
+            error: null,
+            result_summary: "Generated 1 fake headlines (requested 1)",
+            result_provenance: null,
+        });
+
+        render(<AdminPage />);
+
+        await waitFor(() => {
+            expect(mockGetAdminStats).toHaveBeenCalledTimes(1);
+        });
+
+        fireEvent.click(
+            screen.getByRole("button", { name: "Trigger Generate" }),
+        );
+
+        await waitFor(() => {
+            expect(
+                screen.getByText("Generated 1 fake headlines (requested 1)"),
+            ).toBeInTheDocument();
+        });
+
+        expect(
+            screen.queryByTestId("job-provenance-panel"),
+        ).not.toBeInTheDocument();
+
+        expect(mockGetAdminJobStatus).not.toHaveBeenCalled();
+    });
 });
