@@ -96,4 +96,41 @@ describe("api client", () => {
             "Failed to fetch job status",
         );
     });
+
+    test("getAdminJobStatus returns parsed response with provenance", async () => {
+        const completed = {
+            job_id: "job-999",
+            job_type: "generate",
+            status: "completed",
+            requested_count: 1,
+            message: "generate job completed",
+            created_at: "2026-04-15T00:00:00+00:00",
+            started_at: "2026-04-15T00:00:01+00:00",
+            finished_at: "2026-04-15T00:00:02+00:00",
+            error: null,
+            result_summary: "Generated 1 fake headlines (requested 1)",
+            result_provenance: {
+                schema_version: 1,
+                provider: "openai_primary",
+                requested_count: 1,
+                recent_real_context_count: 1,
+                recent_real_context: [
+                    {
+                        headline_id: 6,
+                        text: "Florida man context headline",
+                        source_url: "https://example.com/source",
+                        created_at: "2026-04-07T16:38:00",
+                    },
+                ],
+            },
+        };
+
+        mockFetch.mockResolvedValue(mockResponse(true, completed));
+
+        await expect(getAdminJobStatus("job-999")).resolves.toEqual(completed);
+        expect(mockFetch).toHaveBeenCalledWith(
+            "http://localhost:8000/api/admin/jobs/job-999",
+            undefined,
+        );
+    });
 });

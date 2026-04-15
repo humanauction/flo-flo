@@ -154,5 +154,12 @@ describe("AdminPage provenance panel", () => {
         ).toBeInTheDocument();
 
         expect(mockGetAdminJobStatus).not.toHaveBeenCalled();
+
+        const contextItems = scoped.getAllByRole("listitem");
+        expect(contextItems).toHaveLength(1);
+        expect(contextItems[0]).toHaveTextContent(
+            "Florida man context headline",
+        );
+        expect(contextItems[0]).toHaveTextContent("https://example.com/source");
     });
 });
