@@ -1,4 +1,10 @@
-import { getAdminJobStatus, getAdminStats, getHeadline, submitGuess, triggerGenerateJob } from "@/lib/api";
+import {
+    getAdminJobStatus,
+    getAdminStats,
+    getHeadline,
+    submitGuess,
+    triggerGenerateJob,
+} from "@/lib/api";
 import {
     beforeAll,
     afterEach,
@@ -66,6 +72,7 @@ describe("api client", () => {
             finished_at: null,
             error: null,
             result_summary: null,
+            result_provenance: null,
         };
 
         mockFetch.mockResolvedValue(mockResponse(true, queued));

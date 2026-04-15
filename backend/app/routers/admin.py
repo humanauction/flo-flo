@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone
+import json
 import re
 from threading import Lock
 from typing import Any, Optional
@@ -56,6 +57,7 @@ def _validate_requested_count(count: Any) -> int:
 
 
 def _public_job_payload(job: dict[str, Any]) -> dict[str, Any]:
+    result_summary = job["result_summary"]
     return {
         "job_id": job["job_id"],
         "job_type": job["job_type"],
@@ -67,6 +69,7 @@ def _public_job_payload(job: dict[str, Any]) -> dict[str, Any]:
         "finished_at": job["finished_at"],
         "error": job["error"],
         "result_summary": job["result_summary"],
+        "result_provenance": _extract_provenance_from_summary(result_summary),
     }
 
 
@@ -364,3 +367,27 @@ async def get_job_status(job_id: str):
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return _public_job_payload(job)
+
+
+def _extract_provenance_from_summary(
+    result_summary: Any,
+) -> dict[str, Any] | None:
+    if not isinstance(result_summary, str) or not result_summary.strip():
+        return None
+
+    for line in result_summary.splitlines():
+        if not line.startswith("Provenance: "):
+            continue
+
+        raw = line[len("Provenance: "):].strip()
+        if not raw:
+            return None
+
+        try:
+            payload = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+
+        return payload if isinstance(payload, dict) else None
+
+    return None

@@ -246,3 +246,32 @@ def test_admin_dedupe_chunks_removes_prompt_from_merged_chunk():
     assert deduped == [
         "Generated 1 fake headlines (requested 1)\nSaved 1 new headlines",
     ]
+
+
+def test_admin_public_job_payload_parses_result_provenance():
+    summary = (
+        "Generated 1 fake headlines (requested 1)\n"
+        "Provider: openai_primary\n"
+        'Provenance: {"schema_version":1,"provider":"openai_primary",'
+        '"requested_count":1,"recent_real_context_count":0,'
+        '"recent_real_context":[]}'
+    )
+    job = {
+        "job_id": "job-1",
+        "job_type": "generate",
+        "status": "completed",
+        "requested_count": 1,
+        "message": "generate job completed",
+        "created_at": "2026-04-14T00:00:00+00:00",
+        "started_at": "2026-04-14T00:00:01+00:00",
+        "finished_at": "2026-04-14T00:00:02+00:00",
+        "error": None,
+        "result_summary": summary,
+    }
+
+    payload = admin_router._public_job_payload(job)
+
+    assert payload["result_summary"] == summary
+    assert payload["result_provenance"] is not None
+    assert payload["result_provenance"]["provider"] == "openai_primary"
+    assert payload["result_provenance"]["requested_count"] == 1
