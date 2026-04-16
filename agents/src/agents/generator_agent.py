@@ -38,6 +38,7 @@ _LINE_PREFIX_RE = re.compile(r"^\s*(?:[-*•]+|\d+[.)])\s*")
 OPENAI_PROVIDER_TIMEOUT_SECONDS = 12.0
 DEFAULT_CONTEXT_ROWS = 3
 PROVENANCE_SCHEMA_VERSION = 1
+MAX_CONTEXT_CANDIDATES = 12
 
 
 def _template_provider(count: int) -> list[str]:
@@ -292,6 +293,92 @@ def _get_recent_real_context(
     return [row for row in rows if isinstance(row, dict)]
 
 
+def _normalize_context_text(value: str) -> str:
+    return " ".join(value.lower().split())
+
+
+def _source_bucket(source_url: Any) -> str:
+    if not isinstance(source_url, str) or not source_url.strip():
+        return "unknown"
+    from urllib.parse import urlparse
+    host = urlparse(source_url).netloc.lower().strip()
+    return host or "unknown"
+
+
+def _context_sort_key(row: dict[str, Any]) -> tuple[str, int, str]:
+    created_at = row.get("created_at")
+    created = created_at if isinstance(created_at, str) else ""
+    headline_id = row.get("headline_id")
+    hid = headline_id if isinstance(headline_id, int) else -1
+    text = row.get("text")
+    txt = text.lower() if isinstance(text, str) else ""
+    return (created, hid, txt)
+
+
+def _select_deterministic_context(
+    candidates: list[dict[str, Any]],
+    *,
+    cap: int = DEFAULT_CONTEXT_ROWS,
+) -> list[dict[str, Any]]:
+    if cap < 1:
+        return []
+
+    valid: list[dict[str, Any]] = []
+    seen_norm: set[str] = set()
+
+    for row in candidates:
+        if not isinstance(row, dict):
+            continue
+        text = row.get("text")
+        if not isinstance(text, str):
+            continue
+        cleaned = " ".join(text.split()).strip()
+        if len(cleaned) < 12:
+            continue
+
+        norm = _normalize_context_text(cleaned)
+        if norm in seen_norm:
+            continue
+        seen_norm.add(norm)
+
+        valid.append(
+            {
+                "headline_id": row.get("headline_id"),
+                "text": cleaned,
+                "source_url": row.get("source_url"),
+                "created_at": row.get("created_at"),
+            }
+        )
+
+    valid.sort(key=_context_sort_key, reverse=True)
+
+    selected: list[dict[str, Any]] = []
+    selected_norms: set[str] = set()
+    used_sources: set[str] = set()
+
+    for row in valid:
+        source = _source_bucket(row.get("source_url"))
+        norm = _normalize_context_text(row["text"])
+        if source in used_sources or norm in selected_norms:
+            continue
+        selected.append(row)
+        used_sources.add(source)
+        selected_norms.add(norm)
+        if len(selected) >= cap:
+            return selected
+
+    for row in valid:
+        norm = _normalize_context_text(row["text"])
+        if norm in selected_norms:
+            continue
+        selected.append(row)
+        selected_norms.add(norm)
+        if len(selected) >= cap:
+            break
+
+    return selected
+
+
 def _compact_context_rows(
     rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
@@ -372,7 +459,13 @@ def create_generator_agent() -> AssistantAgent:
 
             provider = _OPENAI_PROVIDER
             raw_headlines: list[str] = []
-            recent_real_context = _get_recent_real_context()
+            recent_real_candidates = _get_recent_real_context(
+                limit=MAX_CONTEXT_CANDIDATES
+            )
+            recent_real_context = _select_deterministic_context(
+                recent_real_candidates,
+                cap=DEFAULT_CONTEXT_ROWS,
+            )
 
             try:
                 raw_headlines = _run_coro_blocking(

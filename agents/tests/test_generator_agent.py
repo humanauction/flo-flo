@@ -280,3 +280,63 @@ def test_append_provenance_to_summary_includes_single_json_object():
     assert payload["recent_real_context_count"] == 1
     assert payload["recent_real_context"][0]["headline_id"] == 101
     assert "is_real" not in payload["recent_real_context"][0]
+
+
+def test_select_deterministic_context_filters_dedupes_diversity_and_order():
+    from agents.generator_agent import _select_deterministic_context
+
+    candidates = [
+        {
+            "headline_id": 900,
+            "text": "too short",
+            "source_url": "https://junk.example/ignored",
+            "created_at": "2026-04-16T10:06:00+00:00",
+        },
+        {
+            "headline_id": 610,
+            "text": "Florida man opens emergency kayak lane on freeway",
+            "source_url": "https://a.example/one",
+            "created_at": "2026-04-16T10:05:00+00:00",
+        },
+        {
+            "headline_id": 609,
+            "text": "  florida   MAN opens emergency kayak lane on freeway  ",
+            "source_url": "https://z.example/dup",
+            "created_at": "2026-04-16T10:04:59+00:00",
+        },
+        {
+            "headline_id": 608,
+            "text": "Florida man installs snack alarm at city pier",
+            "source_url": "https://a.example/two",
+            "created_at": "2026-04-16T10:04:00+00:00",
+        },
+        {
+            "headline_id": 607,
+            "text": "Florida man launches bait drone over marsh",
+            "source_url": "https://b.example/one",
+            "created_at": "2026-04-16T10:03:00+00:00",
+        },
+        {
+            "headline_id": 606,
+            "text": "Florida man starts alligator choir downtown",
+            "source_url": "https://c.example/one",
+            "created_at": "2026-04-16T10:02:00+00:00",
+        },
+    ]
+
+    first = _select_deterministic_context(candidates, cap=3)
+    second = _select_deterministic_context(candidates, cap=3)
+
+    # Deterministic and stable ordering.
+    assert first == second
+    assert [row["headline_id"] for row in first] == [610, 607, 606]
+
+    # Invalid short row dropped.
+    assert all(row["headline_id"] != 900 for row in first)
+
+    # Normalized duplicate dropped.
+    assert all(row["headline_id"] != 609 for row in first)
+
+    # Source diversity preferred before same-source fill.
+    hosts = [row["source_url"].split("/")[2] for row in first]
+    assert len(set(hosts)) == 3
