@@ -10,7 +10,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
-revisions: str = "9f2b4a7d1c0e"
+
+revision: str = "9f2b4a7d1c0e"
 down_revision: Union[str, None] = "18a6bfb4fa39"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -20,7 +21,7 @@ def upgrade() -> None:
     op.create_table(
         "generation_audits",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("job_id", sa.String(length=64), nullable=False, unique=True),
+        sa.Column("job_id", sa.String(length=64), nullable=False),
         sa.Column("requested_count", sa.Integer(), nullable=False),
         sa.Column("provider", sa.String(length=64), nullable=True),
         sa.Column("provenance_schema_version", sa.Integer(), nullable=True),
@@ -29,7 +30,6 @@ def upgrade() -> None:
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
-
             nullable=False,
             server_default=sa.text("(CURRENT_TIMESTAMP)"),
         ),
@@ -37,7 +37,7 @@ def upgrade() -> None:
         sa.UniqueConstraint("job_id"),
     )
     op.create_index(
-        op.f("ix_generation_audits_job_id"),
+        op.f("ix_generation_audits_id"),
         "generation_audits",
         ["id"],
         unique=False,
@@ -46,7 +46,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_index(
-        op.f("ix_generation_audits_job_id"),
-        table_name="generation_audits",
+        op.f("ix_generation_audits_id"),
+        table_name="generation_audits"
     )
     op.drop_table("generation_audits")
