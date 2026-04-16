@@ -93,6 +93,10 @@ if not isinstance(payload["recent_real_context"], list):
 if payload["recent_real_context_count"] != len(payload["recent_real_context"]):
     raise SystemExit("recent_real_context_count mismatch")
 
+audit_id = body.get("result_audit_id")
+if not isinstance(audit_id, int) or audit_id < 1:
+    raise SystemExit("result_audit_id missing or invalid for generate job")
+
 print("provenance_assertions=pass")
 PY
 }

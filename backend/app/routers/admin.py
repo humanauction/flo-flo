@@ -73,6 +73,7 @@ def _public_job_payload(job: dict[str, Any]) -> dict[str, Any]:
         "error": job["error"],
         "result_summary": job["result_summary"],
         "result_provenance": _extract_provenance_from_summary(result_summary),
+        "result_audit_id": job.get("result_audit_id"),
     }
 
 
@@ -89,6 +90,7 @@ def _create_job(job_type: str, requested_count: int) -> dict[str, Any]:
         "finished_at": None,
         "error": None,
         "result_summary": None,
+        "result_audit_id": None,
     }
     with _JOB_LOCK:
         _JOB_STORE[job_id] = record
@@ -259,7 +261,7 @@ def _persist_generate_audit(
     job_id: str,
     requested_count: int,
     result_summary: str,
-) -> None:
+) -> int | None:
     from app.db.repositories.generation_audit_repository import (
         GenerationAuditRepository,
     )
@@ -270,17 +272,18 @@ def _persist_generate_audit(
             "Skipping generate audit persistence for %s: missing provenance",
             job_id,
         )
-        return
+        return None
 
     db = _DB_SESSION_FACTORY()
     try:
         repo = GenerationAuditRepository(db)
-        repo.create(
+        row = repo.create(
             job_id=job_id,
             requested_count=requested_count,
             result_summary=result_summary,
             result_provenance=result_provenance,
         )
+        return int(row.id)
     finally:
         db.close()
 
@@ -294,11 +297,13 @@ def _run_job(job_id: str, job_type: str, requested_count: int) -> None:
     )
 
     try:
+        result_audit_id: int | None = None
+
         if job_type == "scrape":
             result_summary = _execute_scrape_job(requested_count)
         elif job_type == "generate":
             result_summary = _execute_generate_job(requested_count)
-            _persist_generate_audit(
+            result_audit_id = _persist_generate_audit(
                 job_id=job_id,
                 requested_count=requested_count,
                 result_summary=result_summary,
@@ -312,6 +317,7 @@ def _run_job(job_id: str, job_type: str, requested_count: int) -> None:
             message=f"{job_type} job completed",
             finished_at=_utc_now_iso(),
             result_summary=result_summary,
+            result_audit_id=result_audit_id,
             error=None,
         )
     except Exception as exc:
@@ -321,6 +327,7 @@ def _run_job(job_id: str, job_type: str, requested_count: int) -> None:
             message=f"{job_type} job failed",
             finished_at=_utc_now_iso(),
             error=str(exc),
+            result_audit_id=None,
         )
 
 

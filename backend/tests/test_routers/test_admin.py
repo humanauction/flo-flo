@@ -83,6 +83,7 @@ def test_admin_trigger_scrape_job_and_status(client, monkeypatch):
     assert done["status"] == "completed"
     assert done["result_summary"] == "scrape-ok-3"
     assert done["error"] is None
+    assert queued["result_audit_id"] is None
 
 
 def test_admin_trigger_generate_job_and_status(client, monkeypatch):
@@ -104,6 +105,7 @@ def test_admin_trigger_generate_job_and_status(client, monkeypatch):
     assert done["status"] == "completed"
     assert done["result_summary"] == "generate-ok-4"
     assert done["error"] is None
+    assert queued["result_audit_id"] is None
 
 
 def test_admin_generate_job_failure_is_deterministic(client, monkeypatch):
@@ -318,3 +320,5 @@ def test_admin_run_job_persists_generate_audit(db_session, monkeypatch):
     assert audit.provider == "openai_primary"
     assert audit.provenance_schema_version == 1
     assert audit.requested_count == 1
+    assert done["result_audit_id"] is not None
+    assert done["result_audit_id"] == audit.id

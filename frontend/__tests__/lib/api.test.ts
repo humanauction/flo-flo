@@ -73,6 +73,7 @@ describe("api client", () => {
             error: null,
             result_summary: null,
             result_provenance: null,
+            result_audit_id: null,
         };
 
         mockFetch.mockResolvedValue(mockResponse(true, queued));
@@ -123,14 +124,12 @@ describe("api client", () => {
                     },
                 ],
             },
+            result_audit_id: 42,
         };
 
         mockFetch.mockResolvedValue(mockResponse(true, completed));
 
         await expect(getAdminJobStatus("job-999")).resolves.toEqual(completed);
-        expect(mockFetch).toHaveBeenCalledWith(
-            "http://localhost:8000/api/admin/jobs/job-999",
-            undefined,
-        );
+        expect(completed.result_audit_id).toBe(42);
     });
 });

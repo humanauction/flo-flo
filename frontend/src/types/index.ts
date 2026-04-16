@@ -38,6 +38,7 @@ export interface AdminJob {
     error: string | null;
     result_summary: string | null;
     result_provenance: AdminJobProvenance | null;
+    result_audit_id: number | null;
 }
 
 export interface AdminJobProvenanceContextRow {
