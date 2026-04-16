@@ -10,6 +10,7 @@ from app.main import app
 # import models so metadata includes tables
 from app.models.headline import Headline  # noqa: F401
 from app.models.token_usage import TokenUsage  # noqa: F401
+from app.models.generation_audit import GenerationAudit  # noqa: F401
 
 
 @pytest.fixture(scope="session")

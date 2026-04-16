@@ -1,5 +1,6 @@
 from typing import cast
 from app.db.repositories.headline_repository import HeadlineRepository
+from app.db.repositories.generation_audit_repository import GenerationAuditRepository  # noqa: F401
 
 
 def test_repository_create_get_count(db_session):
@@ -64,3 +65,47 @@ def test_get_recent_real_headlines(db_session):
     assert len(recent_reals) == 2
     assert all(bool(row.is_real) for row in recent_reals)
     assert [row.id for row in recent_reals] == [new_real.id, old_real.id]
+
+
+def test_generation_audit_repository_create_and_get(db_session):
+    repo = GenerationAuditRepository(db_session)
+    provenance = {
+        "schema_version": 1,
+        "provider": "openai_primary",
+        "requested_count": 1,
+        "recent_real_context_count": 0,
+        "recent_real_context": [],
+    }
+
+    created = repo.create(
+        job_id="job-123",
+        requested_count=1,
+        result_summary="Generated 1 fake headlines (requested 1)",
+        result_provenance=provenance,
+    )
+
+    assert created.id is not None
+    assert created.provider == "openai_primary"
+    assert created.provenance_schema_version == 1
+    assert created.provenance_json is not None
+
+    found = repo.get_by_job_id("job-123")
+    assert found is not None
+    assert found.job_id == "job-123"
+    assert found.requested_count == 1
+
+
+def test_generation_audit_repository_handles_none_provenance(db_session):
+    repo = GenerationAuditRepository(db_session)
+
+    created = repo.create(
+        job_id="job-456",
+        requested_count=2,
+        result_summary="Generated 2 fake headlines (requested 2)",
+        result_provenance=None,
+    )
+
+    assert created.id is not None
+    assert created.provider is None
+    assert created.provenance_schema_version is None
+    assert created.provenance_json is None

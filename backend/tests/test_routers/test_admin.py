@@ -1,7 +1,10 @@
 import json
 import time
 
+from sqlalchemy.orm import sessionmaker
+
 from app.routers import admin as admin_router
+from app.db.repositories.generation_audit_repository import GenerationAuditRepository
 
 
 def _wait_for_terminal_job_status(client, job_id: str):
@@ -275,3 +278,43 @@ def test_admin_public_job_payload_parses_result_provenance():
     assert payload["result_provenance"] is not None
     assert payload["result_provenance"]["provider"] == "openai_primary"
     assert payload["result_provenance"]["requested_count"] == 1
+
+
+def test_admin_run_job_persists_generate_audit(db_session, monkeypatch):
+    summary = (
+        "Generated 1 fake headlines (requested 1)\n"
+        "Provider: openai_primary\n"
+        'Provenance: {"schema_version":1,"provider":"openai_primary",'
+        '"requested_count":1,"recent_real_context_count":0,'
+        '"recent_real_context":[]}'
+    )
+
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=db_session.bind,
+    )
+    monkeypatch.setattr(
+        admin_router,
+        "_DB_SESSION_FACTORY",
+        testing_session_local,
+    )
+    monkeypatch.setattr(
+        admin_router,
+        "_execute_generate_job",
+        lambda requested_count: summary,
+    )
+
+    job = admin_router._create_job(job_type="generate", requested_count=1)
+    admin_router._run_job(job["job_id"], "generate", 1)
+
+    done = admin_router._get_job(job["job_id"])
+    assert done is not None
+    assert done["status"] == "completed"
+
+    repo = GenerationAuditRepository(db_session)
+    audit = repo.get_by_job_id(job["job_id"])
+    assert audit is not None
+    assert audit.provider == "openai_primary"
+    assert audit.provenance_schema_version == 1
+    assert audit.requested_count == 1

@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 import json
+import logging
 import re
 from threading import Lock
 from typing import Any, Optional
@@ -10,11 +11,13 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field, StrictInt
 from sqlalchemy.orm import Session
 
-from app.db.database import get_db
+from app.db.database import SessionLocal, get_db
 from app.services.headline_service import HeadlineService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
+_DB_SESSION_FACTORY = SessionLocal
 MAX_ADMIN_JOB_COUNT = 50
 DEFAULT_ADMIN_JOB_COUNT = 10
 
@@ -251,6 +254,37 @@ def _execute_generate_job(requested_count: int) -> str:
     return asyncio.run(_run_generate_job_async(requested_count))
 
 
+def _persist_generate_audit(
+    *,
+    job_id: str,
+    requested_count: int,
+    result_summary: str,
+) -> None:
+    from app.db.repositories.generation_audit_repository import (
+        GenerationAuditRepository,
+    )
+
+    result_provenance = _extract_provenance_from_summary(result_summary)
+    if result_provenance is None:
+        logger.warning(
+            "Skipping generate audit persistence for %s: missing provenance",
+            job_id,
+        )
+        return
+
+    db = _DB_SESSION_FACTORY()
+    try:
+        repo = GenerationAuditRepository(db)
+        repo.create(
+            job_id=job_id,
+            requested_count=requested_count,
+            result_summary=result_summary,
+            result_provenance=result_provenance,
+        )
+    finally:
+        db.close()
+
+
 def _run_job(job_id: str, job_type: str, requested_count: int) -> None:
     _update_job(
         job_id,
@@ -264,6 +298,11 @@ def _run_job(job_id: str, job_type: str, requested_count: int) -> None:
             result_summary = _execute_scrape_job(requested_count)
         elif job_type == "generate":
             result_summary = _execute_generate_job(requested_count)
+            _persist_generate_audit(
+                job_id=job_id,
+                requested_count=requested_count,
+                result_summary=result_summary,
+            )
         else:
             raise RuntimeError(f"Unsupported job type: {job_type}")
 
