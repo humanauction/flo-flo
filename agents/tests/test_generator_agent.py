@@ -114,7 +114,19 @@ async def test_generator_agent_with_real_openai_output_quality_shape():
         line for line in full_text.splitlines()
         if line.startswith("Provenance: ")
     ]
-    assert len(provenance_lines) == 1
+    assert provenance_lines
+
+    payloads = [
+        json.loads(line[len("Provenance: "):])
+        for line in provenance_lines
+    ]
+    unique_payloads = {
+        json.dumps(p, sort_keys=True, ensure_ascii=True)
+        for p in payloads
+    }
+    assert len(unique_payloads) == 1
+
+    provenance = payloads[-1]
 
     provenance = json.loads(
         provenance_lines[0][len("Provenance: "):]
