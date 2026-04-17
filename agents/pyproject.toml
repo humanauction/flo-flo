@@ -13,9 +13,9 @@ dependencies = [
 	"pydantic-settings==2.6.1",
 	"requests==2.31.0",
 	"sqlalchemy==2.0.36",
-	"ruff==0.15.11",
 ]
-
+[project.optional-dependencies]
+dev = ["ruff==0.15.11"]
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["agents*"]
