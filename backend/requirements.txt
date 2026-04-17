@@ -21,5 +21,3 @@ autogen-ext[openai]>=0.4.0
 beautifulsoup4==4.12.3
 requests==2.31.0
 playwright==1.48.0
-
-ruff==0.15.11

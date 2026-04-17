@@ -128,9 +128,6 @@ async def test_generator_agent_with_real_openai_output_quality_shape():
 
     provenance = payloads[-1]
 
-    provenance = json.loads(
-        provenance_lines[0][len("Provenance: "):]
-    )
     assert provenance["schema_version"] == 1
     assert provenance["provider"] == "openai_primary"
     assert provenance["requested_count"] == 1
