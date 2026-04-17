@@ -20,17 +20,22 @@ Core loop:
 ## Current Status Snapshot
 
 - Phase 1 and Phase 2 are complete.
+- Phase 3 is complete (3.1 through 3.6).
 - Phase 3.3 scraping improvements are implemented (multi-source adapters, retries, metrics, dedupe).
 - Phase 3.4 generation hardening is implemented (OpenAI-primary with deterministic fallback, quality filters).
 - Phase 3.5 admin control plane is implemented (job queueing, polling, status lifecycle).
-- Phase 3.6 is in progress and partially delivered:
-    - recent real-headline context injection into generation prompt
+- Phase 3.6 context augmentation is implemented end-to-end:
+    - recent real-headline context injection into generation prompts
+    - deterministic context ranking/filtering/windowing with source diversity
     - provenance JSON included in generator output
     - parsed result_provenance returned in admin job status API
+    - result_audit_id linked in admin job status API
+    - provenance/audit persistence in DB (generation_audits)
     - provenance shown in admin UI status panel
 - CI split is stable.
 - Offline tests run automatically.
 - External/OpenAI paths remain isolated to manual/scheduled integration workflow.
+- Phase 4 polish/production work is now the active stage.
 
 ## Tech Stack
 
@@ -66,84 +71,88 @@ Notes:
 ```text
 flo-flo/
 ├── .github/
-│ └── workflows/
-│ ├── python-tests.ci.yml
-│ ├── frontend-tests.ci.yml
-│ └── integration-tests.manual.yml
+│   └── workflows/
+│       ├── python-tests.ci.yml
+│       ├── frontend-tests.ci.yml
+│       └── integration-tests.manual.yml
 ├── backend/
-│ ├── pyproject.toml
-│ ├── app/
-│ │ ├── main.py
-│ │ ├── config.py
-│ │ ├── db/
-│ │ │ ├── database.py
-│ │ │ └── repositories/
-│ │ │ ├── headline_repository.py
-│ │ │ └── token_usage_repository.py
-│ │ ├── models/
-│ │ │ ├── headline.py
-│ │ │ └── token_usage.py
-│ │ ├── routers/
-│ │ │ ├── game.py
-│ │ │ └── admin.py
-│ │ └── services/
-│ │ └── headline_service.py
-│ ├── migrations/
-│ │ ├── env.py
-│ │ └── versions/
-│ ├── tests/
-│ │ ├── conftest.py
-│ │ ├── test_db/
-│ │ ├── test_routers/
-│ │ └── test_services/
-│ ├── alembic.ini
-│ ├── requirements.txt
-│ └── seed_data.py
+│   ├── pyproject.toml
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   ├── db/
+│   │   │   ├── database.py
+│   │   │   └── repositories/
+│   │   │       ├── generation_audit_repository.py
+│   │   │       ├── headline_repository.py
+│   │   │       └── token_usage_repository.py
+│   │   ├── models/
+│   │   │   ├── generation_audit.py
+│   │   │   ├── headline.py
+│   │   │   └── token_usage.py
+│   │   ├── routers/
+│   │   │   ├── game.py
+│   │   │   └── admin.py
+│   │   └── services/
+│   │       └── headline_service.py
+│   ├── migrations/
+│   │   ├── env.py
+│   │   └── versions/
+│   │       ├── 18a6bfb4fa39_initial_schema.py
+│   │       └── 9f2b4a7d1c0e_add_generation_audits.py
+│   ├── tests/
+│   │   ├── conftest.py
+│   │   ├── test_db/
+│   │   ├── test_routers/
+│   │   └── test_services/
+│   ├── alembic.ini
+│   ├── requirements.txt
+│   └── seed_data.py
 ├── agents/
-│ ├── pyproject.toml
-│ ├── pytest.ini
-│ ├── src/
-│ │ └── agents/
-│ │ ├── __init__.py
-│ │ ├── config.py
-│ │ ├── scraper_agent.py
-│ │ ├── generator_agent.py
-│ │ ├── orchestrator.py
-│ │ └── tools/
-│ │ ├── __init__.py
-│ │ ├── scraper.py
-│ │ ├── database.py
-│ │ └── generator_quality.py
-│ ├── tools/ # compatibility namespace retained
-│ └── tests/
-│ ├── test_scraper_agent.py
-│ ├── test_generator_agent.py
-│ └── test_tools/
-│ ├── test_tool_scraper.py
-│ ├── test_tool_database.py
-│ └── test_tool_generator_quality.py
+│   ├── pyproject.toml
+│   ├── pytest.ini
+│   ├── src/
+│   │   └── agents/
+│   │       ├── __init__.py
+│   │       ├── config.py
+│   │       ├── scraper_agent.py
+│   │       ├── generator_agent.py
+│   │       ├── orchestrator.py
+│   │       └── tools/
+│   │           ├── __init__.py
+│   │           ├── scraper.py
+│   │           ├── database.py
+│   │           └── generator_quality.py
+│   ├── tools/  # compatibility namespace retained
+│   └── tests/
+│       ├── test_scraper_agent.py
+│       ├── test_generator_agent.py
+│       └── test_tools/
+│           ├── test_tool_scraper.py
+│           ├── test_tool_database.py
+│           └── test_tool_generator_quality.py
 ├── frontend/
-│ ├── src/
-│ │ ├── app/
-│ │ │ ├── page.tsx
-│ │ │ └── admin/
-│ │ │ └── page.tsx
-│ │ ├── components/
-│ │ ├── lib/
-│ │ │ └── api.ts
-│ │ └── types/
-│ │ └── index.ts
-│ ├── __tests__/
-│ │ ├── app/
-│ │ │ └── admin.page.test.tsx
-│ │ └── lib/
-│ │ └── api.test.ts
-│ └── package.json
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.tsx
+│   │   │   └── admin/
+│   │   │       └── page.tsx
+│   │   ├── components/
+│   │   ├── lib/
+│   │   │   └── api.ts
+│   │   └── types/
+│   │       └── index.ts
+│   ├── __tests__/
+│   │   ├── app/
+│   │   │   └── admin.page.test.tsx
+│   │   └── lib/
+│   │       └── api.test.ts
+│   └── package.json
 ├── scripts/
-│ └── canary_admin_job.sh
+│   └── canary_admin_job.sh
 ├── tests/
-│ ├── test_api_integration.py
-│ └── test_e2e_headline_flow.py
+│   ├── test_api_integration.py
+│   └── test_e2e_headline_flow.py
 ├── env.py
 ├── makefile
 ├── .gitignore
@@ -188,7 +197,7 @@ frontend/__tests__/lib/
 - [x] Database integration tools
 - [x] Orchestrator for agent coordination
 
-### Phase 3: Agent Enhancement (Current)
+### Phase 3: Agent Enhancement (Complete)
 
 Goal: robust offline-first behavior, explicit external/openai test gates, stronger quality controls.
 
@@ -224,16 +233,16 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 - [x] Add frontend admin page to run jobs and show status/logs
 - [x] Add admin job status endpoint and polling contract
 
-#### 3.6 Context Augmentation (In Progress)
+#### 3.6 Context Augmentation (Implemented)
 
 - [x] Inject small recent real-headline context set into generation prompt
 - [x] Include provenance metadata in generator output summary
 - [x] Parse and expose result_provenance in admin job status API payload
 - [x] Render provenance details in admin UI status panel (read-only)
-- [ ] Persist provenance/audit history in DB (migration + repository/service)
-- [ ] Expand context strategy beyond small recent set (ranking/filtering/windowing)
+- [x] Persist provenance/audit history in DB (migration + repository/service)
+- [x] Expand context strategy beyond small recent set (ranking/filtering/windowing)
 
-### Phase 4: Polish & Production
+### Phase 4: Polish & Production (Current)
 
 - [ ] Accounts/Stats
 - [ ] Leaderboard
@@ -257,7 +266,7 @@ Goal: robust offline-first behavior, explicit external/openai test gates, strong
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - Python 3.13+
 
 ### Installation (Recommended, Repository Root)
@@ -275,11 +284,14 @@ python -m pip install -e backend -e agents
 
 # Test tooling
 python -m pip install pytest pytest-asyncio pytest-cov
+
+# Optional agents dev tooling (Ruff)
+python -m pip install -e './agents[dev]'
 ```
 
 ### Environment
 
-Create `backend/.env`:
+Create backend/.env:
 
 ```env
 DATABASE_URL=sqlite:///./floridaman.db
@@ -294,7 +306,7 @@ MAX_HEADLINES_PER_SCRAPE=10
 TARGET_URL=https://floridaman.com/
 ```
 
-Create `frontend/.env.local`:
+Create frontend/.env.local:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
@@ -334,22 +346,22 @@ python -m alembic upgrade head
 python seed_data.py
 ```
 
-Do not use runtime `Base.metadata.create_all()` for schema management.
+Do not use runtime Base.metadata.create_all() for schema management.
 
 ## API Endpoints
 
 ### Game
 
-- `GET /api/game/headline`
-- `POST /api/game/guess`
+- GET /api/game/headline
+- POST /api/game/guess
 
 ### Admin
 
-- `GET /api/admin/stats`
-- `POST /api/admin/headline` (manual insert)
-- `POST /api/admin/scrape` (queues scrape job, optional count 1-50, default 10)
-- `POST /api/admin/generate` (queues generate job, optional count 1-50, default 10)
-- `GET /api/admin/jobs/{job_id}` (returns queued/running/completed/failed state with `result_summary` plus parsed `result_provenance` when available)
+- GET /api/admin/stats
+- POST /api/admin/headline (manual insert)
+- POST /api/admin/scrape (queues scrape job, optional count 1-50, default 10)
+- POST /api/admin/generate (queues generate job, optional count 1-50, default 10)
+- GET /api/admin/jobs/{job_id} (returns queued/running/completed/failed state with result_summary, parsed result_provenance, and result_audit_id when available)
 
 ## Testing
 
@@ -372,6 +384,9 @@ python -m pytest -q tests/test_tools/test_tool_generator_quality.py
 python -m pytest -q agents/tests/test_generator_agent.py -k "provenance or openai_provider"
 python -m pytest -q backend/tests/test_routers/test_admin.py -k "provenance or dedupe"
 
+# agents lint
+python -m ruff check agents/src/agents agents/tests
+
 # frontend admin provenance panel test
 cd frontend
 npm test -- --verbose __tests__/app/admin.page.test.tsx
@@ -379,29 +394,29 @@ npm test -- --verbose __tests__/app/admin.page.test.tsx
 
 ### Root Integration Scaffolds
 
-- `tests/test_api_integration.py`
-- `tests/test_e2e_headline_flow.py`
+- tests/test_api_integration.py
+- tests/test_e2e_headline_flow.py
 
 ## CI Workflows
 
 ### Python Tests (Offline)
 
-- File: `.github/workflows/python-tests.ci.yml`
+- File: .github/workflows/python-tests.ci.yml
 - Trigger: backend/agents push or pull request
 - Runs offline-only backend and agents suites
 
 ### Frontend Tests
 
-- File: `.github/workflows/frontend-tests.ci.yml`
+- File: .github/workflows/frontend-tests.ci.yml
 - Trigger: frontend push or pull request
 - Runs npm test with coverage
 
 ### Integration Tests (Manual)
 
-- File: `.github/workflows/integration-tests.manual.yml`
+- File: .github/workflows/integration-tests.manual.yml
 - Trigger: manual + weekly schedule
-- Suites: `external`, `openai`, `all`
-- OpenAI path runs only when `OPENAI_API_KEY` is present
+- Suites: external, openai, all
+- OpenAI path runs only when OPENAI_API_KEY is present
 
 ## Contributing
 
@@ -413,6 +428,6 @@ MIT
 
 ---
 
-**Status:** 🚧 Phase 3 (3.6 context augmentation in progress; provenance pipeline implemented end-to-end)
-**Last Updated:** April 15, 2026
-**Next Milestone:** 3.6.2 persist provenance/audit history in DB (migration + write path + API verification)
+Status: 🚧 Phase 4
+Last Updated: April 17, 2026
+Next Milestone: Phase 4.1 accounts/stats baseline plus UX loading/error polish
