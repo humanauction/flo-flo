@@ -1,6 +1,8 @@
 from typing import cast
 from app.db.repositories.headline_repository import HeadlineRepository
-from app.db.repositories.generation_audit_repository import GenerationAuditRepository  # noqa: F401
+from app.db.repositories.generation_audit_repository import (
+    GenerationAuditRepository
+)  # noqa: F401
 
 
 def test_repository_create_get_count(db_session):

@@ -4,7 +4,9 @@ import time
 from sqlalchemy.orm import sessionmaker
 
 from app.routers import admin as admin_router
-from app.db.repositories.generation_audit_repository import GenerationAuditRepository
+from app.db.repositories.generation_audit_repository import (
+    GenerationAuditRepository
+)
 
 
 def _wait_for_terminal_job_status(client, job_id: str):
