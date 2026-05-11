@@ -21,6 +21,11 @@ class Headline(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    embedding: Mapped[bytes | None] = mapped_column(
+        nullable=True
+    )  # Store as bytes; convert to vector in app logic
+    embedding_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    embedded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self):
         return (

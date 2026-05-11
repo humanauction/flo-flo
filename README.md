@@ -51,7 +51,8 @@ Core loop:
 - FastAPI
 - SQLAlchemy
 - Alembic
-- SQLite for dev (PostgreSQL planned for production)
+- SQLite for dev
+- PostgreSQL for production-ready RAG
 
 ### Agents
 
