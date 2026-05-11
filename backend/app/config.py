@@ -13,6 +13,15 @@ class Settings(BaseSettings):
     api_reload: bool = True
     allowed_origins: Union[List[str], str] = ["http://localhost:3000"]
     openai_api_key: str = ""  # Default empty to avoid Pylance error
+    rag_enabled: bool = False
+    rag_top_k: int = 8
+    rag_max_context_rows: int = 3
+    embedding_provider: str = "openai"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dim: int = 1536
+    openai_budget_usd_max: float = 4.0
+    openai_budget_warn_usd: list[float] = [1.0, 2.0, 3.0]
+    admin_diagnostics_enabled: bool = False
 
     @field_validator("allowed_origins", mode="before")
     @classmethod

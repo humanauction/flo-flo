@@ -1,4 +1,5 @@
 from datetime import datetime
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import String, Boolean, DateTime, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.database import Base
@@ -21,9 +22,9 @@ class Headline(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    embedding: Mapped[bytes | None] = mapped_column(
-        nullable=True
-    )  # Store as bytes; convert to vector in app logic
+    embedding: Mapped[[list[float]] | None] = mapped_column(
+        Vector(1536), nullable=True
+    )
     embedding_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
     embedded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
