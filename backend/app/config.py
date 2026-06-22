@@ -7,7 +7,7 @@ from typing import List, Union
 class Settings(BaseSettings):
     """Application settings loaded from .env file"""
 
-    database_url: str = "sqlite:///./floridaman.db"
+    database_url: str = "postgresql://user:pass@localhost:5432/floridaman"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     api_reload: bool = True
@@ -38,21 +38,22 @@ class Settings(BaseSettings):
         if not isinstance(v, str):
             return v
 
-        prefix = "sqlite:///"
-        if not v.startswith(prefix):
-            return v
+        # prefix = "sqlite:///"
+        # if not v.startswith(prefix):
+        #     return v
 
-        db_part = v[len(prefix):]
-        if db_part in ("", ":memory:"):
-            return v
+        # db_part = v[len(prefix):]
+        # if db_part in ("", ":memory:"):
+        #     return v
 
-        db_path = Path(db_part)
-        if db_path.is_absolute():
-            return v
+        # db_path = Path(db_part)
+        # if db_path.is_absolute():
+        #     return v
 
-        backend_dir = Path(__file__).resolve().parents[1]
-        abs_db = (backend_dir / db_path).resolve()
-        return f"sqlite:///{abs_db.as_posix()}"
+        # backend_dir = Path(__file__).resolve().parents[1]
+        # abs_db = (backend_dir / db_path).resolve()
+        # return f"sqlite:///{abs_db.as_posix()}"
+        return v
 
     model_config = SettingsConfigDict(
         env_file=str(Path(__file__).parent.parent / ".env"),
@@ -62,4 +63,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
