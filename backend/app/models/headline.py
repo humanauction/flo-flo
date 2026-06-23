@@ -1,35 +1,33 @@
-from datetime import datetime
-from pgvector.sqlalchemy import Vector
-from sqlalchemy import String, Boolean, DateTime, Text, func
+from __future__ import annotations
+import datetime
+from typing import Optional
+from sqlalchemy import String, DateTime, func, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.database import Base
+from pgvector.sqlalchemy import Vector
+from app.config import settings
 
 
 class Headline(Base):
-    """Florida Man headline - real or generated"""
-
     __tablename__ = "headlines"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    text: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
-    # True = real, False = AI
-    is_real: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    # Only real headlines
-    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    scraped_at: Mapped[datetime] = mapped_column(
+    headline: Mapped[str] = mapped_column(String, unique=True, index=True)
+    source: Mapped[str] = mapped_column(String)
+    is_real: Mapped[bool] = mapped_column()
+    scraped_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now()
+    article_text: Mapped[Optional[str]] = mapped_column(Text)
+    article_url: Mapped[Optional[str]] = mapped_column(String)
+
+    # Corrected type hint and added Vector type
+    embedding: Mapped[Optional[list[float]]] = mapped_column(
+        Vector(settings.embedding_dim), nullable=True
     )
-    embedding: Mapped[[list[float]] | None] = mapped_column(
-        Vector(1536), nullable=True
-    )
-    embedding_model: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    embedded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     def __repr__(self):
         return (
-            f"<Headline(id={self.id}, is_real={self.is_real}, "
-            f"text='{self.text[:50]}...')>"
+            f"<Headline(id={self.id}, headline='{self.headline[:30]}...', "
+            f"is_real={self.is_real})>"
         )
