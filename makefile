@@ -3,6 +3,7 @@ COUNT ?= 1
 POLL_INTERVAL ?= 1
 MAX_WAIT ?= 60
 CONFIRM_OPENAI ?= 0
+PORT ?= 8000
 
 PYTHON := $(shell command -v python3 2>/dev/null || command -v python)
 
@@ -23,7 +24,7 @@ init: check-venv
 	@echo "Done."
 
 bk: check-venv
-	cd backend && $(PYTHON) -m uvicorn app.main:app --reload --port 8000
+	cd backend && $(PYTHON) -m uvicorn app.main:app --reload --port $(PORT)
 
 fr:
 	cd frontend && npm run dev
